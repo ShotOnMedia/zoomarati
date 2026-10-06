@@ -47,7 +47,6 @@ export class GameScene extends Phaser.Scene {
           this.player.setTexture('orange-run');
           this.player.setDisplaySize(154, 154);
           this.player.setAngle(this.runFrame ? 2 : -2);
-          this.player.setScale(this.player.scaleX, this.runFrame ? this.player.scaleX * .97 : this.player.scaleX);
         }
       }
     });
