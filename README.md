@@ -68,7 +68,7 @@ Runtime-generated placeholder textures deliberately keep gameplay development in
 ## Roadmap
 
 - **v0.2** — game foundation
-- **v0.3** — Zoomarati artwork, sprites and parallax world
+- **v0.3** — Zoomarati artwork, sprites and parallax world *(in progress: scrolling hills/storefronts/road, pickup FX, animation-ready runner)*
 - **v0.4** — sound, polish, combos and power-ups
 - **v0.5** — accounts + API/database backend
 - **v0.6** — verified run sessions + anti-cheat
