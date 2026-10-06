@@ -9,7 +9,7 @@ export class BootScene extends Phaser.Scene {
     this.makeRunner(g, 'runner-run-a', 0);
     this.makeRunner(g, 'runner-run-b', 5);
     this.makeRunner(g, 'runner-jump', -7);
-    this.makeRunner(g, 'runner-duck', 10);
+    this.makeDuckRunner(g, 'runner-duck');
 
     g.fillStyle(0xff7a00).fillRoundedRect(8, 8, 34, 66, 9);
     g.fillStyle(0xfacc15).fillRect(15, 1, 20, 12);
@@ -62,6 +62,32 @@ export class BootScene extends Phaser.Scene {
     g.destroy();
 
     this.scene.start('MenuScene');
+  }
+
+  makeDuckRunner(g, key) {
+    g.clear();
+
+    // Low, horizontal silhouette so ducking is unmistakable even with placeholder art.
+    g.fillStyle(0x4c1d95);
+    for (let i = 0; i < 8; i++) {
+      const x = 18 + i * 8;
+      const tipY = 20 + (i % 2) * 5;
+      g.fillTriangle(x, 48, x + 5, tipY, x + 11, 48);
+    }
+
+    g.fillStyle(0x7c3aed).fillEllipse(47, 58, 72, 48);
+    g.fillStyle(0x7c3aed).fillCircle(70, 52, 23);
+    g.fillStyle(0xfacc15).fillRoundedRect(23, 70, 58, 19, 7);
+
+    g.fillStyle(0xffffff).fillCircle(75, 45, 8);
+    g.fillStyle(0x111827).fillCircle(78, 46, 3);
+    g.fillStyle(0xec4899).fillCircle(25, 59, 6);
+
+    // Tucked legs/feet.
+    g.fillStyle(0x111827).fillRoundedRect(29, 88, 20, 7, 3);
+    g.fillRoundedRect(57, 88, 20, 7, 3);
+
+    g.generateTexture(key, 100, 100);
   }
 
   makeRunner(g, key, legOffset) {

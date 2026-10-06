@@ -4,7 +4,7 @@ A colourful browser-based endless runner inspired by the Zoomarati characters an
 
 ## Current milestone
 
-**v0.2 game foundation**
+**v0.4 first playable build**
 
 - Phaser 3 + Vite
 - Responsive 1280×720 canvas
@@ -53,6 +53,20 @@ npm run build
 
 The generated `dist/` directory is static and can be hosted directly or embedded into WordPress.
 
+## Docker playtest
+
+```bash
+docker compose up -d --build
+```
+
+Open port **8080** on the host by default. To use another local port:
+
+```bash
+ZOOMARATI_PORT=8090 docker compose up -d --build
+```
+
+The container serves the production Vite build through nginx and includes a basic HTTP health check.
+
 ## Controls
 
 - **Space / Up Arrow / tap lower game area** — jump
@@ -67,9 +81,9 @@ Runtime-generated placeholder textures deliberately keep gameplay development in
 
 ## Roadmap
 
-- **v0.2** — game foundation
-- **v0.3** — Zoomarati artwork, sprites and parallax world *(in progress: scrolling hills/storefronts/road, pickup FX, animation-ready runner)*
-- **v0.4** — sound, polish, combos and power-ups
+- **v0.2** — game foundation ✅
+- **v0.3** — visual world, parallax and animation-ready runner ✅
+- **v0.4** — combos, power-ups, gameplay variety and first playtest build ✅
 - **v0.5** — accounts + API/database backend
 - **v0.6** — verified run sessions + anti-cheat
 - **v0.7** — daily/weekly/monthly/yearly leaderboards

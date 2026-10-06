@@ -1,0 +1,7 @@
+services:
+  game:
+    build:
+      context: .
+    restart: unless-stopped
+    ports:
+      - "${ZOOMARATI_PORT:-8080}:80"

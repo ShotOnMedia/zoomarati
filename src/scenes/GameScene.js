@@ -51,17 +51,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   createWorld() {
-    this.add.rectangle(W / 2, H / 2, W, H, 0x38bdf8);
-    this.add.circle(1040, 120, 75, 0xfef08a, .9);
+    this.add.rectangle(W / 2, H / 2, W, H, 0x38bdf8).setDepth(-30);
+    this.add.circle(1040, 120, 75, 0xfef08a, .9).setDepth(-29);
     for (let i = 0; i < 9; i++) {
       const w = 150 + (i % 3) * 35;
       const h = 180 + (i % 4) * 35;
       const colors = [0xf97316, 0xec4899, 0x06b6d4, 0x22c55e, 0x8b5cf6];
-      this.add.rectangle(i * 165 + 70, GROUND_Y - h / 2, w, h, colors[i % colors.length]);
-      this.add.rectangle(i * 165 + 70, GROUND_Y - h + 42, w - 25, 32, 0xffffff, .18);
+      this.add.rectangle(i * 165 + 70, GROUND_Y - h / 2, w, h, colors[i % colors.length]).setDepth(-12);
+      this.add.rectangle(i * 165 + 70, GROUND_Y - h + 42, w - 25, 32, 0xffffff, .18).setDepth(-11);
     }
-    this.add.rectangle(W / 2, GROUND_Y + 55, W, 110, 0x7c4a2d);
-    this.add.rectangle(W / 2, GROUND_Y + 6, W, 16, 0xd1d5db);
+    this.add.rectangle(W / 2, GROUND_Y + 55, W, 110, 0x7c4a2d).setDepth(-4);
+    this.add.rectangle(W / 2, GROUND_Y + 6, W, 16, 0xd1d5db).setDepth(-3);
   }
 
   createParallax() {
@@ -85,15 +85,15 @@ export class GameScene extends Phaser.Scene {
     shops.generateTexture('shops-layer', 1520, 230);
     shops.destroy();
 
-    this.hillsA = this.add.image(0, 455, 'hills-layer').setOrigin(0, .5).setDepth(1);
+    this.hillsA = this.add.image(0, 455, 'hills-layer').setOrigin(0, .5).setDepth(-20);
     this.hillsB = this.add.image(this.hillsA.displayWidth, 455, 'hills-layer').setOrigin(0, .5).setDepth(1);
-    this.shopsA = this.add.image(0, 505, 'shops-layer').setOrigin(0, 1).setDepth(2);
-    this.shopsB = this.add.image(this.shopsA.displayWidth, 505, 'shops-layer').setOrigin(0, 1).setDepth(2);
+    this.shopsA = this.add.image(0, 505, 'shops-layer').setOrigin(0, 1).setDepth(-8);
+    this.shopsB = this.add.image(this.shopsA.displayWidth, 505, 'shops-layer').setOrigin(0, 1).setDepth(-8);
     this.parallax.push([this.hillsA, this.hillsB, .08], [this.shopsA, this.shopsB, .28]);
 
     this.roadMarks = [];
     for (let x = 40; x < W + 180; x += 150) {
-      this.roadMarks.push(this.add.rectangle(x, 652, 82, 8, 0xfef3c7, .8).setDepth(4));
+      this.roadMarks.push(this.add.rectangle(x, 652, 82, 8, 0xfef3c7, .8).setDepth(-2));
     }
   }
 
@@ -103,7 +103,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y - 54, 'runner-run-a');
+    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y - 54, 'runner-run-a').setDepth(20);
+    this.standingPlayerY = GROUND_Y - 54;
+    this.duckPlayerY = GROUND_Y - 50;
     this.player.setCollideWorldBounds(true);
     this.setStandingBody();
     this.physics.add.collider(this.player, this.ground);
@@ -115,13 +117,15 @@ export class GameScene extends Phaser.Scene {
     this.obstacles = this.physics.add.group({ allowGravity: false, immovable: true });
 
     this.physics.add.overlap(this.player, this.collectibles, (_, item) => {
+      const x = item.x;
+      const y = item.y;
       item.destroy();
       this.bottles += 1;
       this.combo = this.time.now <= this.comboExpiresAt ? Math.min(this.combo + 1, 10) : 1;
       this.comboExpiresAt = this.time.now + 2200;
       const points = 100 * this.combo * (this.time.now < this.doubleUntil ? 2 : 1);
       this.score += points;
-      this.popCollectible(item.x, item.y, points);
+      this.popCollectible(x, y, points);
       this.updateHud();
     });
 
@@ -133,25 +137,25 @@ export class GameScene extends Phaser.Scene {
     this.add.text(28, 20, this.mode === 'fun' ? 'FUN MODE' : 'PRIZE RUN', {
       fontSize: '24px', color: '#ffffff', backgroundColor: this.mode === 'fun' ? '#6d28d9' : '#b45309',
       padding: { x: 12, y: 7 }
-    });
+    }).setDepth(40);
 
-    this.scoreText = this.add.text(28, 62, 'SCORE 000000', this.hudStyle(30));
-    this.distanceText = this.add.text(28, 104, 'DIST 0000m', this.hudStyle(22));
-    this.bottleText = this.add.text(28, 137, 'BOTTLES 00', this.hudStyle(22));
+    this.scoreText = this.add.text(28, 62, 'SCORE 000000', this.hudStyle(30)).setDepth(40);
+    this.distanceText = this.add.text(28, 104, 'DIST 0000m', this.hudStyle(22)).setDepth(40);
+    this.bottleText = this.add.text(28, 137, 'BOTTLES 00', this.hudStyle(22)).setDepth(40);
     this.comboText = this.add.text(28, 170, '', {
       fontSize: '28px', color: '#facc15', stroke: '#111827', strokeThickness: 6
-    });
-    this.bestText = this.add.text(28, 208, 'FUN BEST ' + this.pad(this.best), this.hudStyle(19));
+    }).setDepth(40);
+    this.bestText = this.add.text(28, 208, 'FUN BEST ' + this.pad(this.best), this.hudStyle(19)).setDepth(40);
     this.powerText = this.add.text(W / 2, 28, '', {
       fontSize: '24px', color: '#ffffff', stroke: '#111827', strokeThickness: 6
-    }).setOrigin(.5, 0);
+    }).setOrigin(.5, 0).setDepth(40);
 
     this.pauseText = this.add.text(W - 35, 30, 'Ⅱ', {
       fontSize: '36px', color: '#ffffff', stroke: '#111827', strokeThickness: 5
-    }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+    }).setOrigin(1, 0).setDepth(40).setInteractive({ useHandCursor: true });
     this.pauseText.on('pointerdown', () => this.togglePause());
 
-    this.helpText = this.add.text(W / 2, 675, 'SPACE / TAP TO JUMP  •  ↓ TO DUCK', this.hudStyle(24)).setOrigin(.5);
+    this.helpText = this.add.text(W / 2, 675, 'SPACE / TAP TO JUMP  •  ↓ / SWIPE DOWN TO DUCK', this.hudStyle(22)).setOrigin(.5).setDepth(40);
   }
 
   hudStyle(size) {
@@ -163,10 +167,73 @@ export class GameScene extends Phaser.Scene {
     this.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.pauseKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
 
+    this.cursors.down.on('down', () => {
+      if (this.gameOver || this.paused || this.ducking || !this.isGrounded()) return;
+      this.ducking = true;
+      this.setDuckBody();
+    });
+
+    this.cursors.down.on('up', () => {
+      if (!this.ducking) return;
+      this.ducking = false;
+      this.setStandingBody();
+    });
+
+    this.pointerGesture = null;
+
     this.input.on('pointerdown', pointer => {
       if (this.gameOver) return this.restart();
       if (this.paused) return;
-      if (pointer.y > H * .72) this.jump();
+
+      this.pointerGesture = {
+        id: pointer.id,
+        startX: pointer.x,
+        startY: pointer.y,
+        ducked: false
+      };
+    });
+
+    this.input.on('pointermove', pointer => {
+      const gesture = this.pointerGesture;
+      if (!gesture || gesture.id !== pointer.id || gesture.ducked || this.gameOver || this.paused) return;
+
+      const dx = pointer.x - gesture.startX;
+      const dy = pointer.y - gesture.startY;
+
+      // A deliberate downward drag/swipe becomes a duck. Horizontal movement
+      // is tolerated so the gesture feels natural on touch screens and mice.
+      if (dy >= 42 && dy > Math.abs(dx) * .7 && this.isGrounded() && !this.ducking) {
+        gesture.ducked = true;
+        this.ducking = true;
+        this.setDuckBody();
+      }
+    });
+
+    this.input.on('pointerup', pointer => {
+      const gesture = this.pointerGesture;
+      if (!gesture || gesture.id !== pointer.id) return;
+
+      const dx = pointer.x - gesture.startX;
+      const dy = pointer.y - gesture.startY;
+      const travel = Math.hypot(dx, dy);
+
+      if (gesture.ducked) {
+        this.ducking = false;
+        this.setStandingBody();
+      } else if (travel < 28 && !this.gameOver && !this.paused) {
+        this.jump();
+      }
+
+      this.pointerGesture = null;
+    });
+
+    this.input.on('pointerupoutside', pointer => {
+      if (!this.pointerGesture || this.pointerGesture.id !== pointer.id) return;
+      if (this.pointerGesture.ducked) {
+        this.ducking = false;
+        this.setStandingBody();
+      }
+      this.pointerGesture = null;
     });
   }
 
@@ -180,12 +247,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.space) || Phaser.Input.Keyboard.JustDown(this.cursors.up)) this.jump();
-
-    const wantsDuck = this.cursors.down.isDown && this.isGrounded();
-    if (wantsDuck !== this.ducking) {
-      this.ducking = wantsDuck;
-      if (this.ducking) this.setDuckBody(); else this.setStandingBody();
-    }
 
     const dt = Math.min(delta, 50) / 1000;
     this.speed = Math.min(760, this.speed + dt * 5);
@@ -252,16 +313,18 @@ export class GameScene extends Phaser.Scene {
   setStandingBody() {
     if (!this.player?.body) return;
     this.player.setTexture('runner-run-a');
-    this.player.setScale(1, 1);
-    this.player.body.setSize(60, 92);
+    this.player.setScale(1);
+    if (this.isGrounded()) this.player.y = this.standingPlayerY;
+    this.player.body.setSize(60, 92, false);
     this.player.body.setOffset(15, 10);
   }
 
   setDuckBody() {
     this.player.setTexture('runner-duck');
-    this.player.setScale(1, .82);
-    this.player.body.setSize(68, 60);
-    this.player.body.setOffset(11, 40);
+    this.player.setScale(1);
+    this.player.y = this.duckPlayerY;
+    this.player.body.setSize(68, 52, false);
+    this.player.body.setOffset(16, 45);
   }
 
   spawnCollectible() {
@@ -274,7 +337,7 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < count; i++) {
       let y = baseY;
       if (pattern === 'arc') y -= Math.sin((i / (count - 1)) * Math.PI) * 95;
-      const bottle = this.collectibles.create(baseX + i * 72, y, 'bottle').setScale(.78);
+      const bottle = this.collectibles.create(baseX + i * 72, y, 'bottle').setScale(.78).setDepth(15);
       bottle.body.setSize(38, 68);
     }
   }
@@ -282,7 +345,7 @@ export class GameScene extends Phaser.Scene {
   spawnPowerUp() {
     if (this.gameOver || this.paused || this.powerUps.countActive(true)) return;
     const type = Phaser.Math.RND.pick(['shield', 'magnet', 'double']);
-    const item = this.powerUps.create(W + 90, Phaser.Math.Between(GROUND_Y - 210, GROUND_Y - 110), 'power-' + type);
+    const item = this.powerUps.create(W + 90, Phaser.Math.Between(GROUND_Y - 210, GROUND_Y - 110), 'power-' + type).setDepth(16);
     item.powerType = type;
     item.setScale(.9);
   }
@@ -357,7 +420,7 @@ export class GameScene extends Phaser.Scene {
     if (type === 'puddle') y = GROUND_Y - 10;
     if (type === 'barrier') y = GROUND_Y - 18;
     if (type === 'awning') y = GROUND_Y - 92;
-    const obstacle = this.obstacles.create(W + 100, y, type);
+    const obstacle = this.obstacles.create(W + 100, y, type).setDepth(18);
     if (type === 'puddle') obstacle.body.setSize(95, 28);
     if (type === 'crate') obstacle.body.setSize(62, 64);
     if (type === 'barrier') obstacle.body.setSize(105, 30);
@@ -376,7 +439,9 @@ export class GameScene extends Phaser.Scene {
     if (this.time.now < this.magnetUntil) powers.push('MAGNET ' + Math.ceil((this.magnetUntil - this.time.now) / 1000) + 's');
     if (this.time.now < this.doubleUntil) powers.push('2× ZOOM ' + Math.ceil((this.doubleUntil - this.time.now) / 1000) + 's');
     this.powerText.setText(powers.join('   •   '));
-    if (!this.ducking && this.isGrounded() && this.player.texture.key === 'runner-jump') {
+    if (this.ducking) {
+      if (this.player.texture.key !== 'runner-duck') this.player.setTexture('runner-duck');
+    } else if (this.isGrounded() && this.player.texture.key === 'runner-jump') {
       this.player.setTexture('runner-run-a');
     }
   }
