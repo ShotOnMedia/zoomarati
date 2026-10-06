@@ -3,6 +3,10 @@ import Phaser from 'phaser';
 export class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
 
+  preload() {
+    this.load.image('orange-run', '/assets/characters/orange-run.webp');
+  }
+
   create() {
     const g = this.add.graphics();
 
@@ -14,10 +18,8 @@ export class BootScene extends Phaser.Scene {
     this.makeRunner(g, 'og-potato-jump', -7);
     this.makeDuckRunner(g, 'og-potato-duck');
 
-    this.makeZoomRunner(g, 'runner-run-a', 'run-a');
-    this.makeZoomRunner(g, 'runner-run-b', 'run-b');
-    this.makeZoomRunner(g, 'runner-jump', 'jump');
-    this.makeZoomRunner(g, 'runner-duck', 'duck');
+    // Active character uses the original Orange artwork loaded above.
+    // OG Potato remains generated below as the permanent prototype fallback.
 
     g.fillStyle(0xff7a00).fillRoundedRect(8, 8, 34, 66, 9);
     g.fillStyle(0xfacc15).fillRect(15, 1, 20, 12);
