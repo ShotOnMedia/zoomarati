@@ -33,8 +33,14 @@ export class GameScene extends Phaser.Scene {
     this.obstacleTimer = this.time.addEvent({ delay: 1650, loop: true, callback: () => this.spawnObstacle() });
     this.collectibleTimer = this.time.addEvent({ delay: 1150, loop: true, callback: () => this.spawnCollectible() });
 
-    this.runnerBob = this.tweens.add({
-      targets: this.player, scaleX: 1.04, duration: 120, yoyo: true, repeat: -1
+    this.runFrame = 0;
+    this.runAnimTimer = this.time.addEvent({
+      delay: 125, loop: true, callback: () => {
+        if (!this.gameOver && !this.paused && !this.ducking && this.isGrounded()) {
+          this.runFrame = 1 - this.runFrame;
+          this.player.setTexture(this.runFrame ? 'runner-run-b' : 'runner-run-a');
+        }
+      }
     });
   }
 
@@ -91,7 +97,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y - 54, 'runner');
+    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y - 54, 'runner-run-a');
     this.player.setCollideWorldBounds(true);
     this.setStandingBody();
     this.physics.add.collider(this.player, this.ground);
@@ -203,21 +209,21 @@ export class GameScene extends Phaser.Scene {
   jump() {
     if (!this.isGrounded() || this.ducking) return;
     this.player.setVelocityY(-780);
-    this.runnerBob?.pause();
+    this.player.setTexture('runner-jump');
     this.tweens.add({ targets: this.player, angle: -8, duration: 100, yoyo: true });
   }
 
   setStandingBody() {
     if (!this.player?.body) return;
-    if (this.isGrounded?.()) this.runnerBob?.resume();
+    this.player.setTexture('runner-run-a');
     this.player.setScale(1, 1);
     this.player.body.setSize(60, 92);
     this.player.body.setOffset(15, 10);
   }
 
   setDuckBody() {
-    this.runnerBob?.pause();
-    this.player.setScale(1, .68);
+    this.player.setTexture('runner-duck');
+    this.player.setScale(1, .82);
     this.player.body.setSize(68, 60);
     this.player.body.setOffset(11, 40);
   }
@@ -254,6 +260,9 @@ export class GameScene extends Phaser.Scene {
     this.scoreText.setText('SCORE ' + this.pad(this.score));
     this.distanceText.setText('DIST ' + String(Math.floor(this.distance)).padStart(4, '0') + 'm');
     this.bottleText.setText('BOTTLES ' + String(this.bottles).padStart(2, '0'));
+    if (!this.ducking && this.isGrounded() && this.player.texture.key === 'runner-jump') {
+      this.player.setTexture('runner-run-a');
+    }
   }
 
   togglePause() {
@@ -278,8 +287,6 @@ export class GameScene extends Phaser.Scene {
     if (this.gameOver) return;
     this.gameOver = true;
     this.physics.pause();
-    this.runnerBob?.pause();
-
     const finalScore = Math.floor(this.score);
     if (this.mode === 'fun' && finalScore > this.best) {
       this.best = finalScore;
