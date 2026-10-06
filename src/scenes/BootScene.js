@@ -6,6 +6,14 @@ export class BootScene extends Phaser.Scene {
   create() {
     const g = this.add.graphics();
 
+    // OG Potato is intentionally preserved as the fallback/secret character.
+    // Polished character assets can replace the active runner keys later without
+    // deleting the original prototype mascot.
+    this.makeRunner(g, 'og-potato-run-a', 0);
+    this.makeRunner(g, 'og-potato-run-b', 5);
+    this.makeRunner(g, 'og-potato-jump', -7);
+    this.makeDuckRunner(g, 'og-potato-duck');
+
     this.makeRunner(g, 'runner-run-a', 0);
     this.makeRunner(g, 'runner-run-b', 5);
     this.makeRunner(g, 'runner-jump', -7);
