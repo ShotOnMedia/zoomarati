@@ -44,7 +44,10 @@ export class GameScene extends Phaser.Scene {
       delay: 125, loop: true, callback: () => {
         if (!this.gameOver && !this.paused && !this.ducking && this.isGrounded()) {
           this.runFrame = 1 - this.runFrame;
-          this.player.setTexture(this.runFrame ? 'runner-run-b' : 'runner-run-a');
+          this.player.setTexture('orange-run');
+          this.player.setDisplaySize(154, 154);
+          this.player.setAngle(this.runFrame ? 2 : -2);
+          this.player.setScale(this.player.scaleX, this.runFrame ? this.player.scaleX * .97 : this.player.scaleX);
         }
       }
     });
@@ -103,9 +106,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y - 54, 'runner-run-a').setDepth(20);
-    this.standingPlayerY = GROUND_Y - 54;
-    this.duckPlayerY = GROUND_Y - 50;
+    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y - 68, 'orange-run').setDepth(20);
+    this.player.setDisplaySize(154, 154);
+    this.standingPlayerY = GROUND_Y - 68;
+    this.duckPlayerY = GROUND_Y - 46;
     this.player.setCollideWorldBounds(true);
     this.setStandingBody();
     this.physics.add.collider(this.player, this.ground);
@@ -306,25 +310,28 @@ export class GameScene extends Phaser.Scene {
   jump() {
     if (!this.isGrounded() || this.ducking) return;
     this.player.setVelocityY(-780);
-    this.player.setTexture('runner-jump');
-    this.tweens.add({ targets: this.player, angle: -8, duration: 100, yoyo: true });
+    this.player.setTexture('orange-run');
+    this.player.setDisplaySize(154, 154);
+    this.tweens.add({ targets: this.player, angle: -10, scaleX: this.player.scaleX * 1.04, scaleY: this.player.scaleY * .96, duration: 100, yoyo: true });
   }
 
   setStandingBody() {
     if (!this.player?.body) return;
-    this.player.setTexture('runner-run-a');
-    this.player.setScale(1);
+    this.player.setTexture('orange-run');
+    this.player.setDisplaySize(154, 154);
+    this.player.setAngle(0);
     if (this.isGrounded()) this.player.y = this.standingPlayerY;
-    this.player.body.setSize(60, 92, false);
-    this.player.body.setOffset(15, 10);
+    this.player.body.setSize(105, 120, false);
+    this.player.body.setOffset(75, 70);
   }
 
   setDuckBody() {
-    this.player.setTexture('runner-duck');
-    this.player.setScale(1);
+    this.player.setTexture('orange-run');
+    this.player.setDisplaySize(168, 118);
+    this.player.setAngle(5);
     this.player.y = this.duckPlayerY;
-    this.player.body.setSize(68, 52, false);
-    this.player.body.setOffset(16, 45);
+    this.player.body.setSize(130, 70, false);
+    this.player.body.setOffset(63, 108);
   }
 
   spawnCollectible() {
@@ -440,9 +447,10 @@ export class GameScene extends Phaser.Scene {
     if (this.time.now < this.doubleUntil) powers.push('2× ZOOM ' + Math.ceil((this.doubleUntil - this.time.now) / 1000) + 's');
     this.powerText.setText(powers.join('   •   '));
     if (this.ducking) {
-      if (this.player.texture.key !== 'runner-duck') this.player.setTexture('runner-duck');
-    } else if (this.isGrounded() && this.player.texture.key === 'runner-jump') {
-      this.player.setTexture('runner-run-a');
+      this.player.setTexture('orange-run');
+      this.player.setDisplaySize(168, 118);
+    } else if (this.isGrounded()) {
+      this.player.setTexture('orange-run');
     }
   }
 
