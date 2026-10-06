@@ -6,16 +6,15 @@ export class BootScene extends Phaser.Scene {
   create() {
     const g = this.add.graphics();
 
-    g.fillStyle(0x6d28d9).fillCircle(45, 45, 38);
-    g.fillStyle(0xfacc15).fillRect(23, 68, 44, 28);
-    g.fillStyle(0xffffff).fillCircle(58, 35, 10);
-    g.fillStyle(0x111827).fillCircle(61, 36, 4);
-    g.fillStyle(0xec4899).fillCircle(25, 48, 7);
-    g.generateTexture('runner', 90, 104);
-    g.clear();
+    this.makeRunner(g, 'runner-run-a', 0);
+    this.makeRunner(g, 'runner-run-b', 5);
+    this.makeRunner(g, 'runner-jump', -7);
+    this.makeRunner(g, 'runner-duck', 10);
 
     g.fillStyle(0xff7a00).fillRoundedRect(8, 8, 34, 66, 9);
-    g.fillStyle(0xffffff).fillRoundedRect(13, 30, 24, 17, 6);
+    g.fillStyle(0xfacc15).fillRect(15, 1, 20, 12);
+    g.fillStyle(0xffffff).fillRoundedRect(13, 30, 24, 19, 6);
+    g.fillStyle(0x6d28d9).fillRect(17, 35, 16, 4);
     g.generateTexture('bottle', 50, 82);
     g.clear();
 
@@ -35,5 +34,23 @@ export class BootScene extends Phaser.Scene {
     g.destroy();
 
     this.scene.start('MenuScene');
+  }
+
+  makeRunner(g, key, legOffset) {
+    g.clear();
+    g.fillStyle(0x4c1d95);
+    for (let i = 0; i < 9; i++) {
+      const angle = Phaser.Math.DegToRad(150 + i * 17);
+      g.fillTriangle(45, 42, 45 + Math.cos(angle) * 52, 42 + Math.sin(angle) * 52,
+        45 + Math.cos(angle + .15) * 43, 42 + Math.sin(angle + .15) * 43);
+    }
+    g.fillStyle(0x7c3aed).fillCircle(45, 43, 35);
+    g.fillStyle(0xfacc15).fillRoundedRect(23, 66, 44, 25, 7);
+    g.fillStyle(0xffffff).fillCircle(58, 34, 10);
+    g.fillStyle(0x111827).fillCircle(61, 35, 4);
+    g.fillStyle(0xec4899).fillCircle(24, 47, 7);
+    g.fillStyle(0x111827).fillRect(31, 91, 9, 10 + Math.max(0, legOffset));
+    g.fillRect(55, 91, 9, 10 + Math.max(0, -legOffset));
+    g.generateTexture(key, 90, 112);
   }
 }
