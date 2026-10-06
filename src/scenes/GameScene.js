@@ -16,6 +16,11 @@ export class GameScene extends Phaser.Scene {
     this.score = 0;
     this.distance = 0;
     this.bottles = 0;
+    this.combo = 0;
+    this.comboExpiresAt = 0;
+    this.shield = false;
+    this.magnetUntil = 0;
+    this.doubleUntil = 0;
     this.speed = 410;
     this.gameOver = false;
     this.paused = false;
@@ -32,6 +37,7 @@ export class GameScene extends Phaser.Scene {
 
     this.obstacleTimer = this.time.addEvent({ delay: 1650, loop: true, callback: () => this.spawnObstacle() });
     this.collectibleTimer = this.time.addEvent({ delay: 1150, loop: true, callback: () => this.spawnCollectible() });
+    this.powerTimer = this.time.addEvent({ delay: 9000, loop: true, callback: () => this.spawnPowerUp() });
 
     this.runFrame = 0;
     this.runAnimTimer = this.time.addEvent({
@@ -92,8 +98,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   createGround() {
-    this.ground = this.physics.add.staticImage(W / 2, GROUND_Y + 14, null).setDisplaySize(W, 20).setVisible(false);
-    this.ground.refreshBody();
+    this.ground = this.add.rectangle(W / 2, GROUND_Y + 14, W, 20, 0x000000, 0);
+    this.physics.add.existing(this.ground, true);
   }
 
   createPlayer() {
@@ -105,17 +111,22 @@ export class GameScene extends Phaser.Scene {
 
   createGroups() {
     this.collectibles = this.physics.add.group({ allowGravity: false, immovable: true });
+    this.powerUps = this.physics.add.group({ allowGravity: false, immovable: true });
     this.obstacles = this.physics.add.group({ allowGravity: false, immovable: true });
 
     this.physics.add.overlap(this.player, this.collectibles, (_, item) => {
       item.destroy();
       this.bottles += 1;
-      this.score += 100;
-      this.popCollectible(item.x, item.y);
+      this.combo = this.time.now <= this.comboExpiresAt ? Math.min(this.combo + 1, 10) : 1;
+      this.comboExpiresAt = this.time.now + 2200;
+      const points = 100 * this.combo * (this.time.now < this.doubleUntil ? 2 : 1);
+      this.score += points;
+      this.popCollectible(item.x, item.y, points);
       this.updateHud();
     });
 
-    this.physics.add.overlap(this.player, this.obstacles, () => this.endRun());
+    this.physics.add.overlap(this.player, this.powerUps, (_, item) => this.collectPowerUp(item));
+    this.physics.add.overlap(this.player, this.obstacles, (_, obstacle) => this.hitObstacle(obstacle));
   }
 
   createHud() {
@@ -127,7 +138,13 @@ export class GameScene extends Phaser.Scene {
     this.scoreText = this.add.text(28, 62, 'SCORE 000000', this.hudStyle(30));
     this.distanceText = this.add.text(28, 104, 'DIST 0000m', this.hudStyle(22));
     this.bottleText = this.add.text(28, 137, 'BOTTLES 00', this.hudStyle(22));
-    this.bestText = this.add.text(28, 170, 'FUN BEST ' + this.pad(this.best), this.hudStyle(19));
+    this.comboText = this.add.text(28, 170, '', {
+      fontSize: '28px', color: '#facc15', stroke: '#111827', strokeThickness: 6
+    });
+    this.bestText = this.add.text(28, 208, 'FUN BEST ' + this.pad(this.best), this.hudStyle(19));
+    this.powerText = this.add.text(W / 2, 28, '', {
+      fontSize: '24px', color: '#ffffff', stroke: '#111827', strokeThickness: 6
+    }).setOrigin(.5, 0);
 
     this.pauseText = this.add.text(W - 35, 30, 'Ⅱ', {
       fontSize: '36px', color: '#ffffff', stroke: '#111827', strokeThickness: 5
@@ -175,10 +192,29 @@ export class GameScene extends Phaser.Scene {
     this.updateParallax(dt);
     this.distance += this.speed * dt / 90;
     this.score += dt * 22;
+    if (this.combo && this.time.now > this.comboExpiresAt) {
+      this.combo = 0;
+      this.comboText.setText('');
+    }
 
     for (const item of this.collectibles.getChildren()) {
       item.x -= this.speed * dt;
       if (item.x < -80) item.destroy();
+    }
+    if (this.time.now < this.magnetUntil) {
+      for (const item of this.collectibles.getChildren()) {
+        const dx = this.player.x - item.x;
+        const dy = this.player.y - item.y;
+        if (Math.abs(dx) < 310) {
+          item.x += dx * Math.min(1, dt * 7);
+          item.y += dy * Math.min(1, dt * 7);
+        }
+      }
+    }
+    for (const power of this.powerUps.getChildren()) {
+      power.x -= this.speed * dt;
+      power.angle += 90 * dt;
+      if (power.x < -90) power.destroy();
     }
     for (const obstacle of this.obstacles.getChildren()) {
       obstacle.x -= this.speed * dt;
@@ -230,27 +266,102 @@ export class GameScene extends Phaser.Scene {
 
   spawnCollectible() {
     if (this.gameOver || this.paused) return;
-    const y = Phaser.Math.Between(GROUND_Y - 230, GROUND_Y - 95);
-    this.collectibles.create(W + 60, y, 'bottle').setScale(.78);
+    const pattern = Phaser.Math.RND.pick(['single', 'line', 'arc']);
+    const baseX = W + 70;
+    const baseY = Phaser.Math.Between(GROUND_Y - 210, GROUND_Y - 115);
+    const count = pattern === 'single' ? 1 : pattern === 'line' ? 3 : 5;
+
+    for (let i = 0; i < count; i++) {
+      let y = baseY;
+      if (pattern === 'arc') y -= Math.sin((i / (count - 1)) * Math.PI) * 95;
+      const bottle = this.collectibles.create(baseX + i * 72, y, 'bottle').setScale(.78);
+      bottle.body.setSize(38, 68);
+    }
   }
 
-  popCollectible(x, y) {
-    const burst = this.add.text(x, y, '+100', {
+  spawnPowerUp() {
+    if (this.gameOver || this.paused || this.powerUps.countActive(true)) return;
+    const type = Phaser.Math.RND.pick(['shield', 'magnet', 'double']);
+    const item = this.powerUps.create(W + 90, Phaser.Math.Between(GROUND_Y - 210, GROUND_Y - 110), 'power-' + type);
+    item.powerType = type;
+    item.setScale(.9);
+  }
+
+  collectPowerUp(item) {
+    const type = item.powerType;
+    const x = item.x;
+    const y = item.y;
+    item.destroy();
+
+    if (type === 'shield') this.shield = true;
+    if (type === 'magnet') this.magnetUntil = this.time.now + 7000;
+    if (type === 'double') this.doubleUntil = this.time.now + 7000;
+
+    const label = type === 'shield' ? 'SHIELD!' : type === 'magnet' ? 'BOTTLE MAGNET!' : '2× ZOOM!';
+    const flash = this.add.text(W / 2, 260, label, {
+      fontSize: '42px', color: '#facc15', stroke: '#111827', strokeThickness: 8
+    }).setOrigin(.5).setDepth(35).setScale(.6);
+    this.tweens.add({ targets: flash, scale: 1.15, y: 225, duration: 180, yoyo: true, hold: 350, alpha: 0, onComplete: () => flash.destroy() });
+    this.collectSpark(x, y);
+    this.cameras.main.flash(100, 255, 255, 255, false);
+  }
+
+  hitObstacle(obstacle) {
+    if (this.shield) {
+      this.shield = false;
+      obstacle.destroy();
+      this.cameras.main.shake(180, .009);
+      const saved = this.add.text(this.player.x + 80, this.player.y - 70, 'SHIELD SAVE!', {
+        fontSize: '28px', color: '#22c55e', stroke: '#111827', strokeThickness: 6
+      }).setDepth(35);
+      this.tweens.add({ targets: saved, y: saved.y - 55, alpha: 0, duration: 650, onComplete: () => saved.destroy() });
+      return;
+    }
+    this.endRun();
+  }
+
+  popCollectible(x, y, points) {
+    const burst = this.add.text(x, y, '+' + points, {
       fontSize: '25px', color: '#facc15', stroke: '#111827', strokeThickness: 5
     }).setOrigin(.5).setDepth(30);
     this.tweens.add({ targets: burst, y: y - 55, alpha: 0, scale: 1.35, duration: 550, onComplete: () => burst.destroy() });
+    this.comboText.setText(this.combo > 1 ? 'ZOOM COMBO x' + this.combo : '');
+    if (this.combo > 1) {
+      this.cameras.main.shake(70, .0025);
+      this.tweens.add({ targets: this.comboText, scale: 1.28, duration: 90, yoyo: true });
+    }
+    this.collectSpark(x, y);
+  }
+
+  collectSpark(x, y) {
+    for (let i = 0; i < 7; i++) {
+      const dot = this.add.circle(x, y, Phaser.Math.Between(3, 7), Phaser.Math.RND.pick([0xfacc15, 0xffffff, 0xec4899])).setDepth(29);
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const dist = Phaser.Math.Between(35, 85);
+      this.tweens.add({
+        targets: dot,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist,
+        alpha: 0,
+        scale: .2,
+        duration: Phaser.Math.Between(280, 520),
+        onComplete: () => dot.destroy()
+      });
+    }
   }
 
   spawnObstacle() {
     if (this.gameOver || this.paused) return;
-    const type = Phaser.Math.RND.pick(['crate', 'puddle', 'barrier']);
+    const type = Phaser.Math.RND.pick(['crate', 'puddle', 'barrier', 'awning']);
     let y = GROUND_Y - 35;
     if (type === 'puddle') y = GROUND_Y - 10;
     if (type === 'barrier') y = GROUND_Y - 18;
+    if (type === 'awning') y = GROUND_Y - 92;
     const obstacle = this.obstacles.create(W + 100, y, type);
     if (type === 'puddle') obstacle.body.setSize(95, 28);
     if (type === 'crate') obstacle.body.setSize(62, 64);
     if (type === 'barrier') obstacle.body.setSize(105, 30);
+    if (type === 'awning') obstacle.body.setSize(135, 30);
 
     const nextDelay = Phaser.Math.Clamp(1800 - (this.speed - 410) * 1.7, 900, 1800);
     this.obstacleTimer.delay = Phaser.Math.Between(Math.floor(nextDelay * .82), Math.floor(nextDelay * 1.18));
@@ -260,6 +371,11 @@ export class GameScene extends Phaser.Scene {
     this.scoreText.setText('SCORE ' + this.pad(this.score));
     this.distanceText.setText('DIST ' + String(Math.floor(this.distance)).padStart(4, '0') + 'm');
     this.bottleText.setText('BOTTLES ' + String(this.bottles).padStart(2, '0'));
+    const powers = [];
+    if (this.shield) powers.push('🛡 SHIELD');
+    if (this.time.now < this.magnetUntil) powers.push('MAGNET ' + Math.ceil((this.magnetUntil - this.time.now) / 1000) + 's');
+    if (this.time.now < this.doubleUntil) powers.push('2× ZOOM ' + Math.ceil((this.doubleUntil - this.time.now) / 1000) + 's');
+    this.powerText.setText(powers.join('   •   '));
     if (!this.ducking && this.isGrounded() && this.player.texture.key === 'runner-jump') {
       this.player.setTexture('runner-run-a');
     }
