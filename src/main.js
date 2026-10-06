@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import './style.css';
 import { BootScene } from './scenes/BootScene.js';
+import { MenuScene } from './scenes/MenuScene.js';
 import { GameScene } from './scenes/GameScene.js';
 
 const config = {
@@ -11,10 +12,7 @@ const config = {
   roundPixels: true,
   physics: {
     default: 'arcade',
-    arcade: {
-      gravity: { y: 1800 },
-      debug: false
-    }
+    arcade: { gravity: { y: 1900 }, debug: false }
   },
   scale: {
     mode: Phaser.Scale.FIT,
@@ -22,7 +20,7 @@ const config = {
     width: 1280,
     height: 720
   },
-  scene: [BootScene, GameScene]
+  scene: [BootScene, MenuScene, GameScene]
 };
 
 new Phaser.Game(config);
