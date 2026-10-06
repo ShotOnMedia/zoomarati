@@ -50,6 +50,12 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('power-double', 64, 64);
     g.clear();
 
+    g.fillStyle(0x6d28d9).fillRoundedRect(0, 0, 150, 42, 8);
+    g.fillStyle(0xfacc15).fillRect(12, 9, 126, 24);
+    g.fillStyle(0x111827).fillRect(20, 16, 110, 10);
+    g.generateTexture('awning', 150, 42);
+    g.clear();
+
     g.fillStyle(0xef4444).fillRoundedRect(0, 0, 120, 36, 8);
     g.fillStyle(0xffffff).fillRect(12, 12, 96, 8);
     g.generateTexture('barrier', 120, 36);
