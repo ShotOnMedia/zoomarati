@@ -165,6 +165,18 @@ export class GameScene extends Phaser.Scene {
     this.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.pauseKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
 
+    this.cursors.down.on('down', () => {
+      if (this.gameOver || this.paused || this.ducking || !this.isGrounded()) return;
+      this.ducking = true;
+      this.setDuckBody();
+    });
+
+    this.cursors.down.on('up', () => {
+      if (!this.ducking) return;
+      this.ducking = false;
+      this.setStandingBody();
+    });
+
     this.input.on('pointerdown', pointer => {
       if (this.gameOver) return this.restart();
       if (this.paused) return;
@@ -182,12 +194,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.space) || Phaser.Input.Keyboard.JustDown(this.cursors.up)) this.jump();
-
-    const wantsDuck = this.cursors.down.isDown && this.isGrounded();
-    if (wantsDuck !== this.ducking) {
-      this.ducking = wantsDuck;
-      if (this.ducking) this.setDuckBody(); else this.setStandingBody();
-    }
 
     const dt = Math.min(delta, 50) / 1000;
     this.speed = Math.min(760, this.speed + dt * 5);
