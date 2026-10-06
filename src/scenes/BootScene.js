@@ -28,6 +28,28 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('puddle', 110, 50);
     g.clear();
 
+    g.fillStyle(0x22c55e).fillCircle(32, 32, 29);
+    g.lineStyle(6, 0xffffff).strokeCircle(32, 32, 22);
+    g.fillStyle(0xffffff).fillTriangle(32, 10, 18, 35, 32, 54);
+    g.fillTriangle(32, 10, 46, 35, 32, 54);
+    g.generateTexture('power-shield', 64, 64);
+    g.clear();
+
+    g.fillStyle(0xec4899).fillRoundedRect(8, 8, 48, 48, 12);
+    g.fillStyle(0xffffff).fillRect(14, 16, 12, 30);
+    g.fillRect(38, 16, 12, 30);
+    g.fillStyle(0x60a5fa).fillRect(14, 40, 12, 10);
+    g.fillRect(38, 40, 12, 10);
+    g.generateTexture('power-magnet', 64, 64);
+    g.clear();
+
+    g.fillStyle(0xfacc15).fillCircle(32, 32, 29);
+    g.fillStyle(0x6d28d9);
+    g.fillTriangle(35, 5, 17, 34, 30, 34);
+    g.fillTriangle(29, 59, 47, 30, 34, 30);
+    g.generateTexture('power-double', 64, 64);
+    g.clear();
+
     g.fillStyle(0xef4444).fillRoundedRect(0, 0, 120, 36, 8);
     g.fillStyle(0xffffff).fillRect(12, 12, 96, 8);
     g.generateTexture('barrier', 120, 36);
