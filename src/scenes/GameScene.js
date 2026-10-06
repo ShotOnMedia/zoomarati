@@ -16,6 +16,8 @@ export class GameScene extends Phaser.Scene {
     this.score = 0;
     this.distance = 0;
     this.bottles = 0;
+    this.combo = 0;
+    this.comboExpiresAt = 0;
     this.speed = 410;
     this.gameOver = false;
     this.paused = false;
@@ -110,8 +112,11 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.collectibles, (_, item) => {
       item.destroy();
       this.bottles += 1;
-      this.score += 100;
-      this.popCollectible(item.x, item.y);
+      this.combo = this.time.now <= this.comboExpiresAt ? Math.min(this.combo + 1, 10) : 1;
+      this.comboExpiresAt = this.time.now + 2200;
+      const points = 100 * this.combo;
+      this.score += points;
+      this.popCollectible(item.x, item.y, points);
       this.updateHud();
     });
 
@@ -127,7 +132,10 @@ export class GameScene extends Phaser.Scene {
     this.scoreText = this.add.text(28, 62, 'SCORE 000000', this.hudStyle(30));
     this.distanceText = this.add.text(28, 104, 'DIST 0000m', this.hudStyle(22));
     this.bottleText = this.add.text(28, 137, 'BOTTLES 00', this.hudStyle(22));
-    this.bestText = this.add.text(28, 170, 'FUN BEST ' + this.pad(this.best), this.hudStyle(19));
+    this.comboText = this.add.text(28, 170, '', {
+      fontSize: '28px', color: '#facc15', stroke: '#111827', strokeThickness: 6
+    });
+    this.bestText = this.add.text(28, 208, 'FUN BEST ' + this.pad(this.best), this.hudStyle(19));
 
     this.pauseText = this.add.text(W - 35, 30, 'Ⅱ', {
       fontSize: '36px', color: '#ffffff', stroke: '#111827', strokeThickness: 5
@@ -175,6 +183,10 @@ export class GameScene extends Phaser.Scene {
     this.updateParallax(dt);
     this.distance += this.speed * dt / 90;
     this.score += dt * 22;
+    if (this.combo && this.time.now > this.comboExpiresAt) {
+      this.combo = 0;
+      this.comboText.setText('');
+    }
 
     for (const item of this.collectibles.getChildren()) {
       item.x -= this.speed * dt;
@@ -234,11 +246,34 @@ export class GameScene extends Phaser.Scene {
     this.collectibles.create(W + 60, y, 'bottle').setScale(.78);
   }
 
-  popCollectible(x, y) {
-    const burst = this.add.text(x, y, '+100', {
+  popCollectible(x, y, points) {
+    const burst = this.add.text(x, y, '+' + points, {
       fontSize: '25px', color: '#facc15', stroke: '#111827', strokeThickness: 5
     }).setOrigin(.5).setDepth(30);
     this.tweens.add({ targets: burst, y: y - 55, alpha: 0, scale: 1.35, duration: 550, onComplete: () => burst.destroy() });
+    this.comboText.setText(this.combo > 1 ? 'ZOOM COMBO x' + this.combo : '');
+    if (this.combo > 1) {
+      this.cameras.main.shake(70, .0025);
+      this.tweens.add({ targets: this.comboText, scale: 1.28, duration: 90, yoyo: true });
+    }
+    this.collectSpark(x, y);
+  }
+
+  collectSpark(x, y) {
+    for (let i = 0; i < 7; i++) {
+      const dot = this.add.circle(x, y, Phaser.Math.Between(3, 7), Phaser.Math.RND.pick([0xfacc15, 0xffffff, 0xec4899])).setDepth(29);
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const dist = Phaser.Math.Between(35, 85);
+      this.tweens.add({
+        targets: dot,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist,
+        alpha: 0,
+        scale: .2,
+        duration: Phaser.Math.Between(280, 520),
+        onComplete: () => dot.destroy()
+      });
+    }
   }
 
   spawnObstacle() {
