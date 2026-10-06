@@ -86,7 +86,7 @@ export class GameScene extends Phaser.Scene {
     shops.destroy();
 
     this.hillsA = this.add.image(0, 455, 'hills-layer').setOrigin(0, .5).setDepth(-20);
-    this.hillsB = this.add.image(this.hillsA.displayWidth, 455, 'hills-layer').setOrigin(0, .5).setDepth(1);
+    this.hillsB = this.add.image(this.hillsA.displayWidth, 455, 'hills-layer').setOrigin(0, .5).setDepth(-20);
     this.shopsA = this.add.image(0, 505, 'shops-layer').setOrigin(0, 1).setDepth(-8);
     this.shopsB = this.add.image(this.shopsA.displayWidth, 505, 'shops-layer').setOrigin(0, 1).setDepth(-8);
     this.parallax.push([this.hillsA, this.hillsB, .08], [this.shopsA, this.shopsB, .28]);
