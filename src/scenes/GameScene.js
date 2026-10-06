@@ -98,8 +98,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   createGround() {
-    this.ground = this.physics.add.staticImage(W / 2, GROUND_Y + 14, null).setDisplaySize(W, 20).setVisible(false);
-    this.ground.refreshBody();
+    this.ground = this.add.rectangle(W / 2, GROUND_Y + 14, W, 20, 0x000000, 0);
+    this.physics.add.existing(this.ground, true);
   }
 
   createPlayer() {
@@ -266,8 +266,17 @@ export class GameScene extends Phaser.Scene {
 
   spawnCollectible() {
     if (this.gameOver || this.paused) return;
-    const y = Phaser.Math.Between(GROUND_Y - 230, GROUND_Y - 95);
-    this.collectibles.create(W + 60, y, 'bottle').setScale(.78);
+    const pattern = Phaser.Math.RND.pick(['single', 'line', 'arc']);
+    const baseX = W + 70;
+    const baseY = Phaser.Math.Between(GROUND_Y - 210, GROUND_Y - 115);
+    const count = pattern === 'single' ? 1 : pattern === 'line' ? 3 : 5;
+
+    for (let i = 0; i < count; i++) {
+      let y = baseY;
+      if (pattern === 'arc') y -= Math.sin((i / (count - 1)) * Math.PI) * 95;
+      const bottle = this.collectibles.create(baseX + i * 72, y, 'bottle').setScale(.78);
+      bottle.body.setSize(38, 68);
+    }
   }
 
   spawnPowerUp() {
@@ -343,14 +352,16 @@ export class GameScene extends Phaser.Scene {
 
   spawnObstacle() {
     if (this.gameOver || this.paused) return;
-    const type = Phaser.Math.RND.pick(['crate', 'puddle', 'barrier']);
+    const type = Phaser.Math.RND.pick(['crate', 'puddle', 'barrier', 'awning']);
     let y = GROUND_Y - 35;
     if (type === 'puddle') y = GROUND_Y - 10;
     if (type === 'barrier') y = GROUND_Y - 18;
+    if (type === 'awning') y = GROUND_Y - 92;
     const obstacle = this.obstacles.create(W + 100, y, type);
     if (type === 'puddle') obstacle.body.setSize(95, 28);
     if (type === 'crate') obstacle.body.setSize(62, 64);
     if (type === 'barrier') obstacle.body.setSize(105, 30);
+    if (type === 'awning') obstacle.body.setSize(135, 30);
 
     const nextDelay = Phaser.Math.Clamp(1800 - (this.speed - 410) * 1.7, 900, 1800);
     this.obstacleTimer.delay = Phaser.Math.Between(Math.floor(nextDelay * .82), Math.floor(nextDelay * 1.18));
