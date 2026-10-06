@@ -78,81 +78,97 @@ export class BootScene extends Phaser.Scene {
     const duck = pose === 'duck';
     const jump = pose === 'jump';
     const runB = pose === 'run-b';
+    const outline = 0x4a1f16;
+    const orange = 0xf47a20;
+    const red = 0xd9362b;
+    const face = 0xffc52f;
+    const blue = 0x36b9ee;
 
-    // Back quills: softer, fuller silhouette than OG Potato while keeping
-    // the purple Zoomarati identity.
-    g.fillStyle(0x4c1d95);
+    // Arms sit behind the fruit body. The pose changes, but the character
+    // keeps the same round silhouette as the original Zoom artwork.
+    g.lineStyle(8, orange);
     if (duck) {
-      for (let i = 0; i < 8; i++) {
-        const x = 12 + i * 10;
-        g.fillTriangle(x, 55, x + 5, 20 + (i % 2) * 5, x + 13, 56);
-      }
-    } else {
-      for (let i = 0; i < 8; i++) {
-        const angle = Phaser.Math.DegToRad(145 + i * 18);
-        g.fillTriangle(
-          47, 46,
-          47 + Math.cos(angle) * 48, 46 + Math.sin(angle) * 48,
-          47 + Math.cos(angle + .17) * 39, 46 + Math.sin(angle + .17) * 39
-        );
-      }
-    }
-
-    // Body/head.
-    g.fillStyle(0x7c3aed);
-    if (duck) {
-      g.fillEllipse(52, 61, 78, 48);
-      g.fillCircle(76, 54, 24);
-    } else {
-      g.fillEllipse(48, 49, 68, 72);
-      g.fillCircle(69, 42, 27);
-    }
-
-    // Face muzzle, cheek, eye and expressive brow.
-    const eyeY = duck ? 47 : 34;
-    g.fillStyle(0xf4c7a1).fillEllipse(82, duck ? 58 : 49, 27, 20);
-    g.fillStyle(0xec4899).fillCircle(35, duck ? 62 : 53, 7);
-    g.fillStyle(0xffffff).fillEllipse(72, eyeY, 15, 18);
-    g.fillStyle(0x111827).fillCircle(75, eyeY + 1, 5);
-    g.lineStyle(3, 0x111827).lineBetween(65, eyeY - 12, 78, eyeY - 15);
-    g.fillStyle(0x111827).fillCircle(94, duck ? 56 : 47, 5);
-
-    // Zoom yellow top with purple Z badge.
-    const shirtY = duck ? 70 : 69;
-    g.fillStyle(0xfacc15).fillRoundedRect(duck ? 30 : 25, shirtY, duck ? 60 : 49, duck ? 19 : 25, 7);
-    g.fillStyle(0x6d28d9);
-    if (duck) {
-      g.fillTriangle(55, 74, 69, 74, 55, 85);
-      g.fillTriangle(55, 85, 69, 85, 69, 74);
-    } else {
-      g.fillTriangle(43, 74, 57, 74, 43, 88);
-      g.fillTriangle(43, 88, 57, 88, 57, 74);
-    }
-
-    // Arms and legs give each state a distinct readable pose.
-    g.lineStyle(7, 0x7c3aed);
-    if (duck) {
-      g.lineBetween(37, 73, 21, 82);
-      g.lineBetween(75, 72, 91, 78);
-      g.fillStyle(0x111827).fillRoundedRect(30, 90, 24, 7, 3);
-      g.fillRoundedRect(61, 90, 24, 7, 3);
+      g.lineBetween(30, 62, 12, 75);
+      g.lineBetween(82, 61, 101, 70);
     } else if (jump) {
-      g.lineBetween(33, 68, 18, 52);
-      g.lineBetween(69, 67, 86, 51);
-      g.lineStyle(8, 0x111827).lineBetween(38, 91, 26, 104);
-      g.lineBetween(61, 91, 76, 102);
-      g.fillStyle(0xffffff).fillRoundedRect(17, 101, 23, 8, 4);
-      g.fillRoundedRect(68, 99, 23, 8, 4);
+      g.lineBetween(31, 58, 12, 40);
+      g.lineBetween(82, 56, 102, 35);
     } else {
-      g.lineBetween(32, 66, runB ? 16 : 22, runB ? 78 : 54);
-      g.lineBetween(70, 65, runB ? 84 : 88, runB ? 51 : 77);
-      g.lineStyle(8, 0x111827).lineBetween(39, 91, runB ? 29 : 44, 104);
-      g.lineBetween(61, 91, runB ? 73 : 56, 104);
-      g.fillStyle(0xffffff).fillRoundedRect(runB ? 18 : 35, 101, 25, 8, 4);
-      g.fillRoundedRect(runB ? 65 : 48, 101, 25, 8, 4);
+      g.lineBetween(31, 59, runB ? 13 : 18, runB ? 76 : 42);
+      g.lineBetween(82, 57, runB ? 100 : 96, runB ? 39 : 75);
     }
 
-    g.generateTexture(key, 110, 112);
+    // Blue cartoon gloves.
+    g.fillStyle(blue);
+    const hands = duck ? [[10, 76], [103, 70]] :
+      jump ? [[10, 39], [103, 34]] :
+      runB ? [[11, 78], [102, 38]] : [[16, 40], [98, 76]];
+    for (const [x, y] of hands) {
+      g.fillCircle(x, y, 8);
+      g.fillCircle(x - 6, y - 5, 4);
+      g.fillCircle(x, y - 8, 4);
+      g.fillCircle(x + 6, y - 5, 4);
+    }
+
+    // Round orange/red fruit body with warm face patch.
+    g.fillStyle(outline).fillEllipse(56, duck ? 60 : 54, duck ? 91 : 84, duck ? 59 : 82);
+    g.fillStyle(red).fillEllipse(54, duck ? 60 : 54, duck ? 86 : 79, duck ? 54 : 77);
+    g.fillStyle(orange).fillEllipse(60, duck ? 55 : 47, duck ? 72 : 67, duck ? 43 : 61);
+    g.fillStyle(face).fillEllipse(68, duck ? 58 : 51, duck ? 58 : 54, duck ? 38 : 48);
+
+    // Small tilted cap from the original character.
+    g.fillStyle(outline).fillEllipse(54, duck ? 34 : 20, 48, 13);
+    g.fillStyle(0xe5b52e).fillEllipse(54, duck ? 32 : 18, 44, 10);
+    g.fillStyle(0x8b5a2b).fillRect(35, duck ? 27 : 13, 39, 7);
+    g.fillStyle(0xe5b52e).fillEllipse(73, duck ? 30 : 16, 24, 7);
+
+    // Eyes, brows and oversized happy Zoom grin.
+    const eyeY = duck ? 49 : 40;
+    g.fillStyle(0xffffff).fillEllipse(60, eyeY, 15, 21);
+    g.fillEllipse(76, eyeY + 1, 15, 21);
+    g.fillStyle(0x2563a6).fillCircle(63, eyeY + 2, 5);
+    g.fillCircle(79, eyeY + 3, 5);
+    g.fillStyle(0x111827).fillCircle(64, eyeY + 2, 2);
+    g.fillCircle(80, eyeY + 3, 2);
+    g.lineStyle(3, outline).lineBetween(52, eyeY - 13, 64, eyeY - 16);
+    g.lineBetween(73, eyeY - 15, 84, eyeY - 11);
+    g.fillStyle(orange).fillEllipse(70, eyeY + 14, 11, 8);
+    g.fillStyle(outline).fillEllipse(72, eyeY + 25, 29, 19);
+    g.fillStyle(0xffffff).fillEllipse(72, eyeY + 20, 22, 8);
+    g.fillStyle(0xe9425c).fillEllipse(73, eyeY + 29, 14, 7);
+
+    // Legs and blue/white sneakers. Duck tucks both feet beneath the body.
+    g.lineStyle(7, orange);
+    if (duck) {
+      g.lineBetween(42, 81, 32, 91);
+      g.lineBetween(72, 82, 82, 91);
+      this.makeZoomShoe(g, 25, 88, false);
+      this.makeZoomShoe(g, 77, 88, true);
+    } else if (jump) {
+      g.lineBetween(42, 88, 27, 101);
+      g.lineBetween(70, 88, 86, 99);
+      this.makeZoomShoe(g, 16, 97, false);
+      this.makeZoomShoe(g, 81, 95, true);
+    } else if (runB) {
+      g.lineBetween(42, 88, 25, 102);
+      g.lineBetween(69, 88, 83, 99);
+      this.makeZoomShoe(g, 14, 98, false);
+      this.makeZoomShoe(g, 78, 95, true);
+    } else {
+      g.lineBetween(43, 88, 57, 101);
+      g.lineBetween(69, 88, 54, 102);
+      this.makeZoomShoe(g, 50, 98, true);
+      this.makeZoomShoe(g, 38, 99, false);
+    }
+
+    g.generateTexture(key, 116, 116);
+  }
+
+  makeZoomShoe(g, x, y, flip) {
+    g.fillStyle(0x163b73).fillRoundedRect(x, y, 25, 12, 6);
+    g.fillStyle(0xffffff).fillRoundedRect(x + (flip ? 1 : 5), y + 2, 17, 7, 4);
+    g.fillStyle(0x36b9ee).fillRect(x + (flip ? 14 : 3), y + 1, 8, 8);
+    g.fillStyle(0xfacc15).fillRect(x + 2, y + 9, 21, 3);
   }
 
   makeDuckRunner(g, key) {
