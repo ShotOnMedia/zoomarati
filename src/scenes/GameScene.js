@@ -23,6 +23,7 @@ export class GameScene extends Phaser.Scene {
     this.best = this.mode === 'fun' ? Number(localStorage.getItem('zoomarati-fun-best') || 0) : 0;
 
     this.createWorld();
+    this.createParallax();
     this.createGround();
     this.createPlayer();
     this.createGroups();
@@ -31,6 +32,10 @@ export class GameScene extends Phaser.Scene {
 
     this.obstacleTimer = this.time.addEvent({ delay: 1650, loop: true, callback: () => this.spawnObstacle() });
     this.collectibleTimer = this.time.addEvent({ delay: 1150, loop: true, callback: () => this.spawnCollectible() });
+
+    this.runnerBob = this.tweens.add({
+      targets: this.player, scaleX: 1.04, duration: 120, yoyo: true, repeat: -1
+    });
   }
 
   createWorld() {
@@ -45,6 +50,39 @@ export class GameScene extends Phaser.Scene {
     }
     this.add.rectangle(W / 2, GROUND_Y + 55, W, 110, 0x7c4a2d);
     this.add.rectangle(W / 2, GROUND_Y + 6, W, 16, 0xd1d5db);
+  }
+
+  createParallax() {
+    this.parallax = [];
+
+    const hills = this.add.graphics().setDepth(1);
+    hills.fillStyle(0x1d9a8a, .45);
+    for (let x = -80; x < W + 180; x += 220) hills.fillCircle(x, 470, 170);
+    hills.generateTexture('hills-layer', W + 300, 300);
+    hills.destroy();
+
+    const shops = this.add.graphics().setDepth(2);
+    const shopColors = [0xf97316, 0xec4899, 0x22c55e, 0x8b5cf6, 0x06b6d4];
+    for (let i = 0; i < 8; i++) {
+      const x = i * 190;
+      const h = 130 + (i % 3) * 35;
+      shops.fillStyle(shopColors[i % shopColors.length]).fillRect(x, 220 - h, 165, h);
+      shops.fillStyle(0xffffff, .25).fillRect(x + 18, 220 - h + 25, 55, 38);
+      shops.fillStyle(0xfacc15).fillRect(x + 18, 195, 128, 18);
+    }
+    shops.generateTexture('shops-layer', 1520, 230);
+    shops.destroy();
+
+    this.hillsA = this.add.image(0, 455, 'hills-layer').setOrigin(0, .5).setDepth(1);
+    this.hillsB = this.add.image(this.hillsA.displayWidth, 455, 'hills-layer').setOrigin(0, .5).setDepth(1);
+    this.shopsA = this.add.image(0, 505, 'shops-layer').setOrigin(0, 1).setDepth(2);
+    this.shopsB = this.add.image(this.shopsA.displayWidth, 505, 'shops-layer').setOrigin(0, 1).setDepth(2);
+    this.parallax.push([this.hillsA, this.hillsB, .08], [this.shopsA, this.shopsB, .28]);
+
+    this.roadMarks = [];
+    for (let x = 40; x < W + 180; x += 150) {
+      this.roadMarks.push(this.add.rectangle(x, 652, 82, 8, 0xfef3c7, .8).setDepth(4));
+    }
   }
 
   createGround() {
@@ -67,6 +105,7 @@ export class GameScene extends Phaser.Scene {
       item.destroy();
       this.bottles += 1;
       this.score += 100;
+      this.popCollectible(item.x, item.y);
       this.updateHud();
     });
 
@@ -127,6 +166,7 @@ export class GameScene extends Phaser.Scene {
 
     const dt = Math.min(delta, 50) / 1000;
     this.speed = Math.min(760, this.speed + dt * 5);
+    this.updateParallax(dt);
     this.distance += this.speed * dt / 90;
     this.score += dt * 22;
 
@@ -142,6 +182,20 @@ export class GameScene extends Phaser.Scene {
     this.updateHud();
   }
 
+  updateParallax(dt) {
+    for (const [a, b, factor] of this.parallax) {
+      const move = this.speed * factor * dt;
+      a.x -= move;
+      b.x -= move;
+      if (a.x + a.displayWidth <= 0) a.x = b.x + b.displayWidth;
+      if (b.x + b.displayWidth <= 0) b.x = a.x + a.displayWidth;
+    }
+    for (const mark of this.roadMarks) {
+      mark.x -= this.speed * .72 * dt;
+      if (mark.x < -60) mark.x += W + 210;
+    }
+  }
+
   isGrounded() {
     return this.player.body.blocked.down || this.player.body.touching.down;
   }
@@ -149,17 +203,20 @@ export class GameScene extends Phaser.Scene {
   jump() {
     if (!this.isGrounded() || this.ducking) return;
     this.player.setVelocityY(-780);
+    this.runnerBob?.pause();
     this.tweens.add({ targets: this.player, angle: -8, duration: 100, yoyo: true });
   }
 
   setStandingBody() {
     if (!this.player?.body) return;
+    if (this.isGrounded?.()) this.runnerBob?.resume();
     this.player.setScale(1, 1);
     this.player.body.setSize(60, 92);
     this.player.body.setOffset(15, 10);
   }
 
   setDuckBody() {
+    this.runnerBob?.pause();
     this.player.setScale(1, .68);
     this.player.body.setSize(68, 60);
     this.player.body.setOffset(11, 40);
@@ -169,6 +226,13 @@ export class GameScene extends Phaser.Scene {
     if (this.gameOver || this.paused) return;
     const y = Phaser.Math.Between(GROUND_Y - 230, GROUND_Y - 95);
     this.collectibles.create(W + 60, y, 'bottle').setScale(.78);
+  }
+
+  popCollectible(x, y) {
+    const burst = this.add.text(x, y, '+100', {
+      fontSize: '25px', color: '#facc15', stroke: '#111827', strokeThickness: 5
+    }).setOrigin(.5).setDepth(30);
+    this.tweens.add({ targets: burst, y: y - 55, alpha: 0, scale: 1.35, duration: 550, onComplete: () => burst.destroy() });
   }
 
   spawnObstacle() {
@@ -214,6 +278,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gameOver) return;
     this.gameOver = true;
     this.physics.pause();
+    this.runnerBob?.pause();
 
     const finalScore = Math.floor(this.score);
     if (this.mode === 'fun' && finalScore > this.best) {
