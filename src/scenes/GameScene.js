@@ -155,7 +155,7 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(1, 0).setDepth(40).setInteractive({ useHandCursor: true });
     this.pauseText.on('pointerdown', () => this.togglePause());
 
-    this.helpText = this.add.text(W / 2, 675, 'SPACE / TAP TO JUMP  •  ↓ TO DUCK', this.hudStyle(24)).setOrigin(.5).setDepth(40);
+    this.helpText = this.add.text(W / 2, 675, 'SPACE / TAP TO JUMP  •  ↓ / SWIPE DOWN TO DUCK', this.hudStyle(22)).setOrigin(.5).setDepth(40);
   }
 
   hudStyle(size) {
@@ -179,10 +179,61 @@ export class GameScene extends Phaser.Scene {
       this.setStandingBody();
     });
 
+    this.pointerGesture = null;
+
     this.input.on('pointerdown', pointer => {
       if (this.gameOver) return this.restart();
       if (this.paused) return;
-      if (pointer.y > H * .72) this.jump();
+
+      this.pointerGesture = {
+        id: pointer.id,
+        startX: pointer.x,
+        startY: pointer.y,
+        ducked: false
+      };
+    });
+
+    this.input.on('pointermove', pointer => {
+      const gesture = this.pointerGesture;
+      if (!gesture || gesture.id !== pointer.id || gesture.ducked || this.gameOver || this.paused) return;
+
+      const dx = pointer.x - gesture.startX;
+      const dy = pointer.y - gesture.startY;
+
+      // A deliberate downward drag/swipe becomes a duck. Horizontal movement
+      // is tolerated so the gesture feels natural on touch screens and mice.
+      if (dy >= 42 && dy > Math.abs(dx) * .7 && this.isGrounded() && !this.ducking) {
+        gesture.ducked = true;
+        this.ducking = true;
+        this.setDuckBody();
+      }
+    });
+
+    this.input.on('pointerup', pointer => {
+      const gesture = this.pointerGesture;
+      if (!gesture || gesture.id !== pointer.id) return;
+
+      const dx = pointer.x - gesture.startX;
+      const dy = pointer.y - gesture.startY;
+      const travel = Math.hypot(dx, dy);
+
+      if (gesture.ducked) {
+        this.ducking = false;
+        this.setStandingBody();
+      } else if (travel < 28 && !this.gameOver && !this.paused) {
+        this.jump();
+      }
+
+      this.pointerGesture = null;
+    });
+
+    this.input.on('pointerupoutside', pointer => {
+      if (!this.pointerGesture || this.pointerGesture.id !== pointer.id) return;
+      if (this.pointerGesture.ducked) {
+        this.ducking = false;
+        this.setStandingBody();
+      }
+      this.pointerGesture = null;
     });
   }
 
