@@ -384,7 +384,9 @@ export class GameScene extends Phaser.Scene {
     if (this.time.now < this.magnetUntil) powers.push('MAGNET ' + Math.ceil((this.magnetUntil - this.time.now) / 1000) + 's');
     if (this.time.now < this.doubleUntil) powers.push('2× ZOOM ' + Math.ceil((this.doubleUntil - this.time.now) / 1000) + 's');
     this.powerText.setText(powers.join('   •   '));
-    if (!this.ducking && this.isGrounded() && this.player.texture.key === 'runner-jump') {
+    if (this.ducking) {
+      if (this.player.texture.key !== 'runner-duck') this.player.setTexture('runner-duck');
+    } else if (this.isGrounded() && this.player.texture.key === 'runner-jump') {
       this.player.setTexture('runner-run-a');
     }
   }
