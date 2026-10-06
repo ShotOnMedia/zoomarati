@@ -18,6 +18,9 @@ export class GameScene extends Phaser.Scene {
     this.bottles = 0;
     this.combo = 0;
     this.comboExpiresAt = 0;
+    this.shield = false;
+    this.magnetUntil = 0;
+    this.doubleUntil = 0;
     this.speed = 410;
     this.gameOver = false;
     this.paused = false;
@@ -34,6 +37,7 @@ export class GameScene extends Phaser.Scene {
 
     this.obstacleTimer = this.time.addEvent({ delay: 1650, loop: true, callback: () => this.spawnObstacle() });
     this.collectibleTimer = this.time.addEvent({ delay: 1150, loop: true, callback: () => this.spawnCollectible() });
+    this.powerTimer = this.time.addEvent({ delay: 9000, loop: true, callback: () => this.spawnPowerUp() });
 
     this.runFrame = 0;
     this.runAnimTimer = this.time.addEvent({
@@ -107,6 +111,7 @@ export class GameScene extends Phaser.Scene {
 
   createGroups() {
     this.collectibles = this.physics.add.group({ allowGravity: false, immovable: true });
+    this.powerUps = this.physics.add.group({ allowGravity: false, immovable: true });
     this.obstacles = this.physics.add.group({ allowGravity: false, immovable: true });
 
     this.physics.add.overlap(this.player, this.collectibles, (_, item) => {
@@ -114,13 +119,14 @@ export class GameScene extends Phaser.Scene {
       this.bottles += 1;
       this.combo = this.time.now <= this.comboExpiresAt ? Math.min(this.combo + 1, 10) : 1;
       this.comboExpiresAt = this.time.now + 2200;
-      const points = 100 * this.combo;
+      const points = 100 * this.combo * (this.time.now < this.doubleUntil ? 2 : 1);
       this.score += points;
       this.popCollectible(item.x, item.y, points);
       this.updateHud();
     });
 
-    this.physics.add.overlap(this.player, this.obstacles, () => this.endRun());
+    this.physics.add.overlap(this.player, this.powerUps, (_, item) => this.collectPowerUp(item));
+    this.physics.add.overlap(this.player, this.obstacles, (_, obstacle) => this.hitObstacle(obstacle));
   }
 
   createHud() {
@@ -136,6 +142,9 @@ export class GameScene extends Phaser.Scene {
       fontSize: '28px', color: '#facc15', stroke: '#111827', strokeThickness: 6
     });
     this.bestText = this.add.text(28, 208, 'FUN BEST ' + this.pad(this.best), this.hudStyle(19));
+    this.powerText = this.add.text(W / 2, 28, '', {
+      fontSize: '24px', color: '#ffffff', stroke: '#111827', strokeThickness: 6
+    }).setOrigin(.5, 0);
 
     this.pauseText = this.add.text(W - 35, 30, 'Ⅱ', {
       fontSize: '36px', color: '#ffffff', stroke: '#111827', strokeThickness: 5
@@ -192,6 +201,21 @@ export class GameScene extends Phaser.Scene {
       item.x -= this.speed * dt;
       if (item.x < -80) item.destroy();
     }
+    if (this.time.now < this.magnetUntil) {
+      for (const item of this.collectibles.getChildren()) {
+        const dx = this.player.x - item.x;
+        const dy = this.player.y - item.y;
+        if (Math.abs(dx) < 310) {
+          item.x += dx * Math.min(1, dt * 7);
+          item.y += dy * Math.min(1, dt * 7);
+        }
+      }
+    }
+    for (const power of this.powerUps.getChildren()) {
+      power.x -= this.speed * dt;
+      power.angle += 90 * dt;
+      if (power.x < -90) power.destroy();
+    }
     for (const obstacle of this.obstacles.getChildren()) {
       obstacle.x -= this.speed * dt;
       if (obstacle.x < -140) obstacle.destroy();
@@ -246,6 +270,47 @@ export class GameScene extends Phaser.Scene {
     this.collectibles.create(W + 60, y, 'bottle').setScale(.78);
   }
 
+  spawnPowerUp() {
+    if (this.gameOver || this.paused || this.powerUps.countActive(true)) return;
+    const type = Phaser.Math.RND.pick(['shield', 'magnet', 'double']);
+    const item = this.powerUps.create(W + 90, Phaser.Math.Between(GROUND_Y - 210, GROUND_Y - 110), 'power-' + type);
+    item.powerType = type;
+    item.setScale(.9);
+  }
+
+  collectPowerUp(item) {
+    const type = item.powerType;
+    const x = item.x;
+    const y = item.y;
+    item.destroy();
+
+    if (type === 'shield') this.shield = true;
+    if (type === 'magnet') this.magnetUntil = this.time.now + 7000;
+    if (type === 'double') this.doubleUntil = this.time.now + 7000;
+
+    const label = type === 'shield' ? 'SHIELD!' : type === 'magnet' ? 'BOTTLE MAGNET!' : '2× ZOOM!';
+    const flash = this.add.text(W / 2, 260, label, {
+      fontSize: '42px', color: '#facc15', stroke: '#111827', strokeThickness: 8
+    }).setOrigin(.5).setDepth(35).setScale(.6);
+    this.tweens.add({ targets: flash, scale: 1.15, y: 225, duration: 180, yoyo: true, hold: 350, alpha: 0, onComplete: () => flash.destroy() });
+    this.collectSpark(x, y);
+    this.cameras.main.flash(100, 255, 255, 255, false);
+  }
+
+  hitObstacle(obstacle) {
+    if (this.shield) {
+      this.shield = false;
+      obstacle.destroy();
+      this.cameras.main.shake(180, .009);
+      const saved = this.add.text(this.player.x + 80, this.player.y - 70, 'SHIELD SAVE!', {
+        fontSize: '28px', color: '#22c55e', stroke: '#111827', strokeThickness: 6
+      }).setDepth(35);
+      this.tweens.add({ targets: saved, y: saved.y - 55, alpha: 0, duration: 650, onComplete: () => saved.destroy() });
+      return;
+    }
+    this.endRun();
+  }
+
   popCollectible(x, y, points) {
     const burst = this.add.text(x, y, '+' + points, {
       fontSize: '25px', color: '#facc15', stroke: '#111827', strokeThickness: 5
@@ -295,6 +360,11 @@ export class GameScene extends Phaser.Scene {
     this.scoreText.setText('SCORE ' + this.pad(this.score));
     this.distanceText.setText('DIST ' + String(Math.floor(this.distance)).padStart(4, '0') + 'm');
     this.bottleText.setText('BOTTLES ' + String(this.bottles).padStart(2, '0'));
+    const powers = [];
+    if (this.shield) powers.push('🛡 SHIELD');
+    if (this.time.now < this.magnetUntil) powers.push('MAGNET ' + Math.ceil((this.magnetUntil - this.time.now) / 1000) + 's');
+    if (this.time.now < this.doubleUntil) powers.push('2× ZOOM ' + Math.ceil((this.doubleUntil - this.time.now) / 1000) + 's');
+    this.powerText.setText(powers.join('   •   '));
     if (!this.ducking && this.isGrounded() && this.player.texture.key === 'runner-jump') {
       this.player.setTexture('runner-run-a');
     }
