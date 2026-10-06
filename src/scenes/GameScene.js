@@ -104,6 +104,8 @@ export class GameScene extends Phaser.Scene {
 
   createPlayer() {
     this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y - 54, 'runner-run-a').setDepth(20);
+    this.standingPlayerY = GROUND_Y - 54;
+    this.duckPlayerY = GROUND_Y - 50;
     this.player.setCollideWorldBounds(true);
     this.setStandingBody();
     this.physics.add.collider(this.player, this.ground);
@@ -261,6 +263,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.player?.body) return;
     this.player.setTexture('runner-run-a');
     this.player.setScale(1);
+    if (this.isGrounded()) this.player.y = this.standingPlayerY;
     this.player.body.setSize(60, 92, false);
     this.player.body.setOffset(15, 10);
   }
@@ -268,8 +271,9 @@ export class GameScene extends Phaser.Scene {
   setDuckBody() {
     this.player.setTexture('runner-duck');
     this.player.setScale(1);
+    this.player.y = this.duckPlayerY;
     this.player.body.setSize(68, 52, false);
-    this.player.body.setOffset(11, 50);
+    this.player.body.setOffset(16, 45);
   }
 
   spawnCollectible() {
