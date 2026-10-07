@@ -37,9 +37,15 @@ export class BootScene extends Phaser.Scene {
     ];
     for (const [name, colour, accent] of flavours) this.makeZoomPouch(g, 'zoom-' + name, colour, accent);
 
-    g.fillStyle(0xfbbf24).fillRoundedRect(0, 0, 80, 75, 8);
-    g.fillStyle(0x111827).fillTriangle(40, 12, 15, 58, 65, 58);
-    g.generateTexture('crate', 80, 75);
+    // Branded delivery carton / shop stock obstacle.
+    g.fillStyle(0x78350f).fillRoundedRect(2, 4, 78, 69, 5);
+    g.fillStyle(0xd97706).fillRoundedRect(5, 2, 72, 68, 4);
+    g.fillStyle(0xfbbf24).fillRect(8, 8, 66, 13);
+    g.fillStyle(0x6d28d9).fillRoundedRect(14, 28, 54, 27, 5);
+    g.fillStyle(0xffffff).fillRect(21, 35, 40, 7);
+    g.fillStyle(0xfacc15).fillRect(27, 46, 28, 4);
+    g.lineStyle(4, 0x92400e).strokeRect(5, 2, 72, 68);
+    g.generateTexture('crate', 82, 75);
     g.clear();
 
     g.fillStyle(0x60a5fa).fillEllipse(55, 25, 110, 50);
@@ -75,9 +81,15 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('awning', 150, 42);
     g.clear();
 
-    g.fillStyle(0xef4444).fillRoundedRect(0, 0, 120, 36, 8);
-    g.fillStyle(0xffffff).fillRect(12, 12, 96, 8);
-    g.generateTexture('barrier', 120, 36);
+    // Pavement delivery trolley / low stock obstacle.
+    g.fillStyle(0x334155).fillRoundedRect(4, 12, 112, 27, 7);
+    g.fillStyle(0xfacc15).fillRect(12, 18, 96, 9);
+    g.fillStyle(0x6d28d9).fillRect(12, 28, 96, 7);
+    g.fillStyle(0x111827).fillCircle(25, 42, 9);
+    g.fillCircle(95, 42, 9);
+    g.fillStyle(0x94a3b8).fillCircle(25, 42, 4);
+    g.fillCircle(95, 42, 4);
+    g.generateTexture('barrier', 120, 52);
     g.destroy();
 
     this.scene.start('MenuScene');
