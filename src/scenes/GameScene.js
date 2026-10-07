@@ -4,6 +4,7 @@ const W = 1280;
 const H = 720;
 const GROUND_Y = 610;
 const PLAYER_X = 180;
+const ZOOM_FLAVOURS = ['orange', 'mango', 'apple', 'pineapple', 'raspberry', 'blueberry'];
 
 export class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
@@ -537,8 +538,10 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < count; i++) {
       let y = baseY;
       if (pattern === 'arc') y -= Math.sin((i / (count - 1)) * Math.PI) * 95;
-      const bottle = this.collectibles.create(baseX + i * 72, y, 'bottle').setScale(.78).setDepth(15);
-      bottle.body.setSize(38, 68);
+      const flavour = Phaser.Math.RND.pick(ZOOM_FLAVOURS);
+      const bottle = this.collectibles.create(baseX + i * 72, y, 'zoom-' + flavour).setScale(.82).setDepth(15);
+      bottle.setData('flavour', flavour);
+      bottle.body.setSize(42, 64);
     }
   }
 
