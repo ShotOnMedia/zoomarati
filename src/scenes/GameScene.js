@@ -103,9 +103,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y - 76, 'orange-run').setDepth(20);
-    this.standingPlayerY = GROUND_Y - 76;
-    this.duckPlayerY = GROUND_Y - 42;
+    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y, 'orange-run').setDepth(20);
     this.player.setCollideWorldBounds(true);
     this.setOrangeVisual();
     this.setStandingBody();
@@ -128,6 +126,10 @@ export class GameScene extends Phaser.Scene {
 
     this.player.setScale(scale);
     this.player.setAngle(angle);
+
+    // Anchor the sprite to the character's feet instead of the centre of the
+    // source artboard. This makes GROUND_Y mean "feet on pavement".
+    this.player.setOrigin(0.5, 0.88);
 
     // Crop only transparent/artboard padding. The crop is deliberately
     // conservative so gloves, shoes and the cap are never clipped.
@@ -340,7 +342,7 @@ export class GameScene extends Phaser.Scene {
   setStandingBody() {
     if (!this.player?.body) return;
     this.setOrangeVisual();
-    if (this.isGrounded()) this.player.y = this.standingPlayerY;
+    if (this.isGrounded()) this.player.y = GROUND_Y - 2;
 
     // Physics stays compact and forgiving; it is intentionally independent
     // of the full artwork bounds.
@@ -351,9 +353,9 @@ export class GameScene extends Phaser.Scene {
 
   setDuckBody() {
     this.setOrangeVisual(7);
-    this.player.y = this.duckPlayerY;
+    this.player.y = GROUND_Y - 2;
 
-    // Duck by moving the intact artwork lower and shrinking only the hitbox.
+    // Duck keeps the same foot anchor and shrinks only the hitbox.
     // No X/Y stretching: Orange keeps his original proportions.
     const frame = this.player.frame;
     this.player.body.setSize(frame.realWidth * 0.48, frame.realHeight * 0.34, false);
