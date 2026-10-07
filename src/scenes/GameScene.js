@@ -29,6 +29,7 @@ export class GameScene extends Phaser.Scene {
 
     this.createWorld();
     this.createParallax();
+    this.createPromoSystem();
     this.createGround();
     this.createPlayer();
     this.createGroups();
@@ -94,6 +95,102 @@ export class GameScene extends Phaser.Scene {
     this.roadMarks = [];
     for (let x = 40; x < W + 180; x += 150) {
       this.roadMarks.push(this.add.rectangle(x, 652, 82, 8, 0xfef3c7, .8).setDepth(-2));
+    }
+  }
+
+  createPromoSystem() {
+    const raw = this.cache.json.get('promo-campaigns');
+    const now = new Date();
+    this.promoCampaigns = (raw?.campaigns || []).filter(campaign => {
+      if (!campaign.active) return false;
+      if (campaign.start && now < new Date(campaign.start + 'T00:00:00')) return false;
+      if (campaign.end && now > new Date(campaign.end + 'T23:59:59')) return false;
+      return true;
+    });
+
+    this.promoSlots = [];
+    this.nextPromoX = W + 420;
+    this.spawnPromoSlot('billboard', this.nextPromoX);
+    this.spawnPromoSlot('storefront', this.nextPromoX + 720);
+  }
+
+  pickPromoCampaign(type) {
+    const eligible = this.promoCampaigns.filter(c => c.assets?.[type]);
+    if (!eligible.length) return null;
+
+    const weighted = [];
+    for (const campaign of eligible) {
+      const weight = Phaser.Math.Clamp(Number(campaign.weight) || 1, 1, 20);
+      for (let i = 0; i < weight; i++) weighted.push(campaign);
+    }
+    return Phaser.Math.RND.pick(weighted);
+  }
+
+  spawnPromoSlot(type, x) {
+    const campaign = this.pickPromoCampaign(type);
+    const y = type === 'billboard' ? 330 : 455;
+    const width = type === 'billboard' ? 250 : 185;
+    const height = type === 'billboard' ? 125 : 145;
+
+    const container = this.add.container(x, y).setDepth(-6);
+    const frame = this.add.rectangle(0, 0, width + 14, height + 14, 0x4c1d95)
+      .setStrokeStyle(4, 0xfacc15);
+    const panel = this.add.rectangle(0, 0, width, height, 0xffffff);
+    container.add([frame, panel]);
+
+    if (campaign?.assets?.[type]) {
+      const key = 'promo-' + campaign.id + '-' + type;
+      const url = '/assets/promo/' + campaign.assets[type];
+
+      if (this.textures.exists(key)) {
+        const image = this.add.image(0, 0, key).setDisplaySize(width, height);
+        container.add(image);
+      } else {
+        const label = this.makeHousePromo(type, width, height, campaign.name);
+        container.add(label);
+        this.load.image(key, url);
+        this.load.once('filecomplete-image-' + key, () => {
+          if (!container.active) return;
+          label.destroy();
+          container.add(this.add.image(0, 0, key).setDisplaySize(width, height));
+        });
+        this.load.start();
+      }
+      container.setData('campaignId', campaign.id);
+    } else {
+      container.add(this.makeHousePromo(type, width, height));
+      container.setData('campaignId', 'zoomarati-house');
+    }
+
+    container.setData('promoType', type);
+    this.promoSlots.push(container);
+  }
+
+  makeHousePromo(type, width, height, sponsorName = '') {
+    const container = this.add.container(0, 0);
+    container.add(this.add.rectangle(0, 0, width, height, type === 'billboard' ? 0xec4899 : 0x06b6d4));
+    container.add(this.add.text(0, -16, 'ZOOM!', {
+      fontSize: type === 'billboard' ? '34px' : '28px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#6d28d9',
+      strokeThickness: 6
+    }).setOrigin(.5));
+    container.add(this.add.text(0, 25, sponsorName || 'IT\'S WHAT\'S INSIDE\nTHAT COUNTS!', {
+      fontSize: type === 'billboard' ? '14px' : '12px',
+      align: 'center',
+      color: '#fef08a'
+    }).setOrigin(.5));
+    return container;
+  }
+
+  updatePromoSlots(dt) {
+    for (const slot of this.promoSlots) {
+      slot.x -= this.speed * .28 * dt;
+      if (slot.x < -320) {
+        const furthest = Math.max(...this.promoSlots.map(s => s.x));
+        slot.x = furthest + Phaser.Math.Between(620, 880);
+      }
     }
   }
 
@@ -280,6 +377,7 @@ export class GameScene extends Phaser.Scene {
     const dt = Math.min(delta, 50) / 1000;
     this.speed = Math.min(760, this.speed + dt * 5);
     this.updateParallax(dt);
+    this.updatePromoSlots(dt);
     this.distance += this.speed * dt / 90;
     this.score += dt * 22;
     if (this.combo && this.time.now > this.comboExpiresAt) {
