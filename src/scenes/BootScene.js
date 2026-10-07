@@ -5,6 +5,10 @@ export class BootScene extends Phaser.Scene {
 
   preload() {
     this.load.image('orange-run', '/assets/characters/orange-run.webp');
+
+    // Optional campaign artwork. Missing promo files never block gameplay;
+    // campaigns.json decides which real assets are enabled.
+    this.load.json('promo-campaigns', '/assets/promo/campaigns.json');
   }
 
   create() {
