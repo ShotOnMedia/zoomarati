@@ -138,7 +138,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   spawnSceneryProp(x) {
-    const type = Phaser.Math.RND.pick(['lamp', 'planter', 'bin']);
+    const type = Phaser.Math.RND.pick(['lamp', 'planter', 'bin', 'bench', 'poster']);
     const prop = this.add.container(x, GROUND_Y - 7).setDepth(-5);
 
     if (type === 'lamp') {
@@ -149,9 +149,20 @@ export class GameScene extends Phaser.Scene {
       prop.add(this.add.circle(-14, -43, 21, 0x16a34a));
       prop.add(this.add.circle(10, -49, 25, 0x22c55e));
       prop.add(this.add.circle(27, -39, 17, 0x15803d));
-    } else {
+    } else if (type === 'bin') {
       prop.add(this.add.rectangle(0, -27, 42, 51, 0x475569).setStrokeStyle(3, 0x1e293b));
       prop.add(this.add.rectangle(0, -54, 48, 8, 0x1e293b));
+    } else if (type === 'bench') {
+      prop.add(this.add.rectangle(0, -28, 92, 12, 0x92400e));
+      prop.add(this.add.rectangle(0, -49, 92, 10, 0xb45309));
+      prop.add(this.add.rectangle(-34, -13, 7, 31, 0x334155));
+      prop.add(this.add.rectangle(34, -13, 7, 31, 0x334155));
+    } else {
+      prop.add(this.add.rectangle(0, -54, 7, 102, 0x475569));
+      prop.add(this.add.rectangle(0, -106, 64, 58, 0x6d28d9).setStrokeStyle(4, 0xfacc15));
+      prop.add(this.add.text(0, -106, 'ZOOM!', {
+        fontSize: '16px', fontStyle: 'bold', color: '#ffffff'
+      }).setOrigin(.5));
     }
 
     prop.setData('propType', type);
@@ -618,16 +629,24 @@ export class GameScene extends Phaser.Scene {
 
   spawnObstacle() {
     if (this.gameOver || this.paused) return;
-    const type = Phaser.Math.RND.pick(['crate', 'puddle', 'barrier', 'awning']);
-    let y = GROUND_Y - 35;
-    if (type === 'puddle') y = GROUND_Y - 10;
-    if (type === 'barrier') y = GROUND_Y - 18;
-    if (type === 'awning') y = GROUND_Y - 92;
-    const obstacle = this.obstacles.create(W + 100, y, type).setDepth(18);
-    if (type === 'puddle') obstacle.body.setSize(95, 28);
-    if (type === 'crate') obstacle.body.setSize(62, 64);
-    if (type === 'barrier') obstacle.body.setSize(105, 30);
-    if (type === 'awning') obstacle.body.setSize(135, 30);
+    const type = Phaser.Math.RND.pick([
+      'crate', 'puddle', 'barrier', 'awning',
+      'wet-floor', 'carton-stack', 'ice-spill', 'cone'
+    ]);
+    const config = {
+      crate: { y: GROUND_Y - 35, w: 62, h: 64 },
+      puddle: { y: GROUND_Y - 10, w: 95, h: 28 },
+      barrier: { y: GROUND_Y - 18, w: 105, h: 30 },
+      awning: { y: GROUND_Y - 92, w: 135, h: 30 },
+      'wet-floor': { y: GROUND_Y - 43, w: 52, h: 78 },
+      'carton-stack': { y: GROUND_Y - 38, w: 100, h: 68 },
+      'ice-spill': { y: GROUND_Y - 25, w: 105, h: 48 },
+      cone: { y: GROUND_Y - 38, w: 58, h: 70 }
+    }[type];
+
+    const obstacle = this.obstacles.create(W + 100, config.y, type).setDepth(18);
+    obstacle.body.setSize(config.w, config.h);
+    obstacle.setData('hazardType', type);
 
     const nextDelay = Phaser.Math.Clamp(1800 - (this.speed - 410) * 1.7, 900, 1800);
     this.obstacleTimer.delay = Phaser.Math.Between(Math.floor(nextDelay * .82), Math.floor(nextDelay * 1.18));
