@@ -44,9 +44,7 @@ export class GameScene extends Phaser.Scene {
       delay: 125, loop: true, callback: () => {
         if (!this.gameOver && !this.paused && !this.ducking && this.isGrounded()) {
           this.runFrame = 1 - this.runFrame;
-          this.player.setTexture('orange-run');
-          this.player.setDisplaySize(154, 154);
-          this.player.setAngle(this.runFrame ? 2 : -2);
+          this.setOrangeVisual(this.runFrame ? 2 : -2);
         }
       }
     });
@@ -105,13 +103,39 @@ export class GameScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y - 68, 'orange-run').setDepth(20);
-    this.player.setDisplaySize(154, 154);
-    this.standingPlayerY = GROUND_Y - 68;
-    this.duckPlayerY = GROUND_Y - 46;
+    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y - 76, 'orange-run').setDepth(20);
+    this.standingPlayerY = GROUND_Y - 76;
+    this.duckPlayerY = GROUND_Y - 42;
     this.player.setCollideWorldBounds(true);
+    this.setOrangeVisual();
     this.setStandingBody();
     this.physics.add.collider(this.player, this.ground);
+  }
+
+  setOrangeVisual(angle = 0) {
+    if (!this.player) return;
+
+    this.player.setTexture('orange-run');
+
+    // Never deform Orange to match the physics body. Scale the source artwork
+    // uniformly, using its visible central area as the sizing reference.
+    const frame = this.player.frame;
+    const sourceWidth = frame.realWidth || frame.width;
+    const sourceHeight = frame.realHeight || frame.height;
+    const visibleHeightRatio = 0.78;
+    const targetVisibleHeight = 178;
+    const scale = targetVisibleHeight / (sourceHeight * visibleHeightRatio);
+
+    this.player.setScale(scale);
+    this.player.setAngle(angle);
+
+    // Crop only transparent/artboard padding. The crop is deliberately
+    // conservative so gloves, shoes and the cap are never clipped.
+    const cropX = Math.round(sourceWidth * 0.08);
+    const cropY = Math.round(sourceHeight * 0.04);
+    const cropW = Math.round(sourceWidth * 0.84);
+    const cropH = Math.round(sourceHeight * 0.90);
+    this.player.setCrop(cropX, cropY, cropW, cropH);
   }
 
   createGroups() {
@@ -309,28 +333,31 @@ export class GameScene extends Phaser.Scene {
   jump() {
     if (!this.isGrounded() || this.ducking) return;
     this.player.setVelocityY(-780);
-    this.player.setTexture('orange-run');
-    this.player.setDisplaySize(154, 154);
-    this.tweens.add({ targets: this.player, angle: -10, scaleX: this.player.scaleX * 1.04, scaleY: this.player.scaleY * .96, duration: 100, yoyo: true });
+    this.setOrangeVisual();
+    this.tweens.add({ targets: this.player, angle: -10, duration: 100, yoyo: true });
   }
 
   setStandingBody() {
     if (!this.player?.body) return;
-    this.player.setTexture('orange-run');
-    this.player.setDisplaySize(154, 154);
-    this.player.setAngle(0);
+    this.setOrangeVisual();
     if (this.isGrounded()) this.player.y = this.standingPlayerY;
-    this.player.body.setSize(105, 120, false);
-    this.player.body.setOffset(75, 70);
+
+    // Physics stays compact and forgiving; it is intentionally independent
+    // of the full artwork bounds.
+    const frame = this.player.frame;
+    this.player.body.setSize(frame.realWidth * 0.42, frame.realHeight * 0.62, false);
+    this.player.body.setOffset(frame.realWidth * 0.29, frame.realHeight * 0.22);
   }
 
   setDuckBody() {
-    this.player.setTexture('orange-run');
-    this.player.setDisplaySize(168, 118);
-    this.player.setAngle(5);
+    this.setOrangeVisual(7);
     this.player.y = this.duckPlayerY;
-    this.player.body.setSize(130, 70, false);
-    this.player.body.setOffset(63, 108);
+
+    // Duck by moving the intact artwork lower and shrinking only the hitbox.
+    // No X/Y stretching: Orange keeps his original proportions.
+    const frame = this.player.frame;
+    this.player.body.setSize(frame.realWidth * 0.48, frame.realHeight * 0.34, false);
+    this.player.body.setOffset(frame.realWidth * 0.26, frame.realHeight * 0.50);
   }
 
   spawnCollectible() {
@@ -446,10 +473,9 @@ export class GameScene extends Phaser.Scene {
     if (this.time.now < this.doubleUntil) powers.push('2× ZOOM ' + Math.ceil((this.doubleUntil - this.time.now) / 1000) + 's');
     this.powerText.setText(powers.join('   •   '));
     if (this.ducking) {
-      this.player.setTexture('orange-run');
-      this.player.setDisplaySize(168, 118);
-    } else if (this.isGrounded()) {
-      this.player.setTexture('orange-run');
+      if (this.player.angle !== 7) this.setOrangeVisual(7);
+    } else if (this.isGrounded() && Math.abs(this.player.angle) > 3) {
+      this.setOrangeVisual();
     }
   }
 
