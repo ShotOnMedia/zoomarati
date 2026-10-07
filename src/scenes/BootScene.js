@@ -25,12 +25,17 @@ export class BootScene extends Phaser.Scene {
     // Active character uses the original Orange artwork loaded above.
     // OG Potato remains generated below as the permanent prototype fallback.
 
-    g.fillStyle(0xff7a00).fillRoundedRect(8, 8, 34, 66, 9);
-    g.fillStyle(0xfacc15).fillRect(15, 1, 20, 12);
-    g.fillStyle(0xffffff).fillRoundedRect(13, 30, 24, 19, 6);
-    g.fillStyle(0x6d28d9).fillRect(17, 35, 16, 4);
-    g.generateTexture('bottle', 50, 82);
-    g.clear();
+    // Flavour-aware Zoom collectibles. These generated pouches are fallbacks;
+    // final product PNG/WebP art can later use the same texture keys.
+    const flavours = [
+      ['orange', 0xf97316, 0xffd166],
+      ['mango', 0xf59e0b, 0xa3e635],
+      ['apple', 0x22c55e, 0xd9f99d],
+      ['pineapple', 0xfacc15, 0xfef08a],
+      ['raspberry', 0xec4899, 0xf9a8d4],
+      ['blueberry', 0x2563eb, 0x93c5fd]
+    ];
+    for (const [name, colour, accent] of flavours) this.makeZoomPouch(g, 'zoom-' + name, colour, accent);
 
     g.fillStyle(0xfbbf24).fillRoundedRect(0, 0, 80, 75, 8);
     g.fillStyle(0x111827).fillTriangle(40, 12, 15, 58, 65, 58);
@@ -76,6 +81,23 @@ export class BootScene extends Phaser.Scene {
     g.destroy();
 
     this.scene.start('MenuScene');
+  }
+
+  makeZoomPouch(g, key, colour, accent) {
+    g.clear();
+
+    // Compact stand-up pouch silhouette inspired by the product family,
+    // deliberately generic until supplied product artwork is available.
+    g.fillStyle(0x111827, .22).fillRoundedRect(7, 7, 50, 76, 9);
+    g.fillStyle(colour).fillRoundedRect(4, 3, 50, 76, 9);
+    g.fillStyle(accent, .9).fillRoundedRect(8, 8, 42, 18, 5);
+    g.fillStyle(0xffffff, .88).fillEllipse(29, 47, 35, 31);
+    g.fillStyle(0xef4444).fillRoundedRect(10, 31, 38, 19, 7);
+    g.fillStyle(0xffffff).fillRect(15, 37, 28, 6);
+    g.fillStyle(0x6d28d9).fillRoundedRect(12, 57, 34, 12, 5);
+    g.fillStyle(0xffffff).fillRect(17, 61, 24, 4);
+    g.fillStyle(accent).fillTriangle(44, 8, 54, 17, 46, 26);
+    g.generateTexture(key, 62, 86);
   }
 
   makeZoomRunner(g, key, pose) {
