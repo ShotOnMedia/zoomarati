@@ -53,6 +53,45 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('puddle', 110, 50);
     g.clear();
 
+    // Wet-floor sign: tall yellow warning silhouette, clearly hazardous.
+    g.fillStyle(0xfacc15).fillRoundedRect(6, 3, 62, 88, 7);
+    g.fillStyle(0x111827).fillTriangle(37, 18, 17, 58, 57, 58);
+    g.fillStyle(0xfacc15).fillTriangle(37, 28, 27, 51, 47, 51);
+    g.fillStyle(0x111827).fillRect(34, 34, 6, 11);
+    g.fillCircle(37, 49, 3);
+    g.fillStyle(0x92400e).fillRect(13, 70, 48, 7);
+    g.generateTexture('wet-floor', 74, 94);
+    g.clear();
+
+    // Fallen stack of Zoom cartons.
+    g.fillStyle(0xd97706).fillRoundedRect(2, 31, 76, 48, 4);
+    g.fillStyle(0xfbbf24).fillRect(7, 37, 66, 10);
+    g.fillStyle(0x6d28d9).fillRoundedRect(13, 53, 54, 18, 4);
+    g.fillStyle(0xffffff).fillRect(20, 59, 40, 5);
+    g.fillStyle(0xf97316).fillRoundedRect(43, 3, 66, 46, 4);
+    g.fillStyle(0xfacc15).fillRect(48, 9, 56, 9);
+    g.fillStyle(0x6d28d9).fillRoundedRect(53, 24, 46, 17, 4);
+    g.fillStyle(0xffffff).fillRect(60, 30, 32, 5);
+    g.generateTexture('carton-stack', 114, 82);
+    g.clear();
+
+    // Freezer/ice spill hazard.
+    g.fillStyle(0x93c5fd, .95).fillEllipse(61, 62, 116, 34);
+    g.fillStyle(0xdbeafe, .9).fillEllipse(47, 56, 52, 13);
+    g.fillStyle(0x67e8f9).fillRoundedRect(22, 8, 55, 48, 8);
+    g.fillStyle(0xe0f2fe).fillRoundedRect(29, 14, 41, 34, 5);
+    g.lineStyle(4, 0xffffff, .8).lineBetween(36, 20, 61, 42);
+    g.lineBetween(61, 20, 39, 43);
+    g.generateTexture('ice-spill', 122, 80);
+    g.clear();
+
+    // Roadworks cone, deliberately high-contrast.
+    g.fillStyle(0xf97316).fillTriangle(40, 4, 14, 70, 66, 70);
+    g.fillStyle(0xffffff).fillRect(23, 42, 34, 10);
+    g.fillStyle(0x111827).fillRoundedRect(4, 67, 72, 13, 4);
+    g.generateTexture('cone', 80, 82);
+    g.clear();
+
     g.fillStyle(0x22c55e).fillCircle(32, 32, 29);
     g.lineStyle(6, 0xffffff).strokeCircle(32, 32, 22);
     g.fillStyle(0xffffff).fillTriangle(32, 10, 18, 35, 32, 54);
