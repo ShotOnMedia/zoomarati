@@ -52,50 +52,109 @@ export class GameScene extends Phaser.Scene {
   }
 
   createWorld() {
+    // Base world: sky, distant haze, pavement and road. Decorative buildings
+    // now live in the parallax scenery layers rather than being fixed blocks.
     this.add.rectangle(W / 2, H / 2, W, H, 0x38bdf8).setDepth(-30);
-    this.add.circle(1040, 120, 75, 0xfef08a, .9).setDepth(-29);
-    for (let i = 0; i < 9; i++) {
-      const w = 150 + (i % 3) * 35;
-      const h = 180 + (i % 4) * 35;
-      const colors = [0xf97316, 0xec4899, 0x06b6d4, 0x22c55e, 0x8b5cf6];
-      this.add.rectangle(i * 165 + 70, GROUND_Y - h / 2, w, h, colors[i % colors.length]).setDepth(-12);
-      this.add.rectangle(i * 165 + 70, GROUND_Y - h + 42, w - 25, 32, 0xffffff, .18).setDepth(-11);
-    }
+    this.add.rectangle(W / 2, 425, W, 190, 0x7dd3fc, .35).setDepth(-29);
+    this.add.circle(1040, 120, 75, 0xfef08a, .9).setDepth(-28);
+
     this.add.rectangle(W / 2, GROUND_Y + 55, W, 110, 0x7c4a2d).setDepth(-4);
     this.add.rectangle(W / 2, GROUND_Y + 6, W, 16, 0xd1d5db).setDepth(-3);
+    this.add.rectangle(W / 2, GROUND_Y - 5, W, 5, 0xf8fafc, .9).setDepth(-3);
   }
 
   createParallax() {
     this.parallax = [];
 
-    const hills = this.add.graphics().setDepth(1);
-    hills.fillStyle(0x1d9a8a, .45);
-    for (let x = -80; x < W + 180; x += 220) hills.fillCircle(x, 470, 170);
-    hills.generateTexture('hills-layer', W + 300, 300);
-    hills.destroy();
-
-    const shops = this.add.graphics().setDepth(2);
-    const shopColors = [0xf97316, 0xec4899, 0x22c55e, 0x8b5cf6, 0x06b6d4];
-    for (let i = 0; i < 8; i++) {
-      const x = i * 190;
-      const h = 130 + (i % 3) * 35;
-      shops.fillStyle(shopColors[i % shopColors.length]).fillRect(x, 220 - h, 165, h);
-      shops.fillStyle(0xffffff, .25).fillRect(x + 18, 220 - h + 25, 55, 38);
-      shops.fillStyle(0xfacc15).fillRect(x + 18, 195, 128, 18);
+    // Distant Joburg-ish ridge / urban silhouette. It moves slowly enough to
+    // sell depth without competing with gameplay.
+    const skyline = this.add.graphics();
+    skyline.fillStyle(0x0f766e, .30);
+    skyline.fillEllipse(190, 245, 430, 160);
+    skyline.fillEllipse(560, 250, 520, 145);
+    skyline.fillEllipse(1040, 240, 560, 170);
+    skyline.fillStyle(0x155e75, .28);
+    for (let x = 40; x < 1600; x += 95) {
+      const h = 38 + ((x / 95) % 4) * 14;
+      skyline.fillRect(x, 265 - h, 58, h);
     }
-    shops.generateTexture('shops-layer', 1520, 230);
-    shops.destroy();
+    skyline.generateTexture('skyline-layer', 1600, 300);
+    skyline.destroy();
 
-    this.hillsA = this.add.image(0, 455, 'hills-layer').setOrigin(0, .5).setDepth(-20);
-    this.hillsB = this.add.image(this.hillsA.displayWidth, 455, 'hills-layer').setOrigin(0, .5).setDepth(-20);
-    this.shopsA = this.add.image(0, 505, 'shops-layer').setOrigin(0, 1).setDepth(-8);
-    this.shopsB = this.add.image(this.shopsA.displayWidth, 505, 'shops-layer').setOrigin(0, 1).setDepth(-8);
-    this.parallax.push([this.hillsA, this.hillsB, .08], [this.shopsA, this.shopsB, .28]);
+    // Midground street: actual shop façades, doors, windows, awnings, roof
+    // signs and little pavement details instead of anonymous colour blocks.
+    const street = this.add.graphics();
+    const shopColors = [0xf97316, 0xec4899, 0x06b6d4, 0x22c55e, 0x8b5cf6, 0xf59e0b];
+    const trimColors = [0xfef3c7, 0xffffff, 0xfacc15];
+    for (let i = 0; i < 9; i++) {
+      const x = i * 205;
+      const w = 185;
+      const h = 175 + (i % 3) * 24;
+      const top = 250 - h;
 
+      street.fillStyle(0x111827, .18).fillRect(x + 7, top + 7, w, h);
+      street.fillStyle(shopColors[i % shopColors.length]).fillRect(x, top, w, h);
+      street.fillStyle(trimColors[i % trimColors.length]).fillRect(x, top, w, 12);
+
+      // Upper window.
+      street.fillStyle(0xbff3ff, .75).fillRect(x + 20, top + 28, 62, 47);
+      street.fillStyle(0xffffff, .35).fillRect(x + 27, top + 34, 18, 35);
+      street.lineStyle(4, 0xffffff, .55).strokeRect(x + 20, top + 28, 62, 47);
+
+      // Shop sign panel.
+      street.fillStyle(0x4c1d95).fillRoundedRect(x + 18, top + 90, 149, 34, 6);
+      street.fillStyle(0xfacc15).fillRect(x + 28, top + 101, 129, 11);
+
+      // Ground-floor display window and door.
+      street.fillStyle(0x164e63, .82).fillRect(x + 18, top + 136, 98, h - 136);
+      street.fillStyle(0x67e8f9, .35).fillRect(x + 25, top + 143, 84, Math.max(18, h - 151));
+      street.fillStyle(0x3f3f46).fillRect(x + 130, top + 136, 37, h - 136);
+      street.fillStyle(0xfacc15).fillCircle(x + 157, top + h - 28, 3);
+
+      // Striped awning.
+      for (let a = 0; a < 5; a++) {
+        street.fillStyle(a % 2 ? 0xffffff : 0xfacc15).fillRect(x + 18 + a * 30, top + 124, 30, 13);
+      }
+    }
+    street.generateTexture('street-layer', 1845, 260);
+    street.destroy();
+
+    this.skylineA = this.add.image(0, 390, 'skyline-layer').setOrigin(0, 1).setDepth(-20);
+    this.skylineB = this.add.image(this.skylineA.displayWidth, 390, 'skyline-layer').setOrigin(0, 1).setDepth(-20);
+    this.shopsA = this.add.image(0, 600, 'street-layer').setOrigin(0, 1).setDepth(-8);
+    this.shopsB = this.add.image(this.shopsA.displayWidth, 600, 'street-layer').setOrigin(0, 1).setDepth(-8);
+    this.parallax.push([this.skylineA, this.skylineB, .07], [this.shopsA, this.shopsB, .28]);
+
+    // Foreground road markings and decorative pavement props have their own
+    // scroll rates so the street feels layered.
     this.roadMarks = [];
     for (let x = 40; x < W + 180; x += 150) {
       this.roadMarks.push(this.add.rectangle(x, 652, 82, 8, 0xfef3c7, .8).setDepth(-2));
     }
+
+    this.sceneryProps = [];
+    for (let x = 520; x < W + 800; x += 430) this.spawnSceneryProp(x);
+  }
+
+  spawnSceneryProp(x) {
+    const type = Phaser.Math.RND.pick(['lamp', 'planter', 'bin']);
+    const prop = this.add.container(x, GROUND_Y - 7).setDepth(-5);
+
+    if (type === 'lamp') {
+      prop.add(this.add.rectangle(0, -62, 7, 112, 0x334155));
+      prop.add(this.add.circle(0, -122, 15, 0xfef08a).setStrokeStyle(5, 0x334155));
+    } else if (type === 'planter') {
+      prop.add(this.add.rectangle(0, -18, 58, 31, 0x92400e));
+      prop.add(this.add.circle(-14, -43, 21, 0x16a34a));
+      prop.add(this.add.circle(10, -49, 25, 0x22c55e));
+      prop.add(this.add.circle(27, -39, 17, 0x15803d));
+    } else {
+      prop.add(this.add.rectangle(0, -27, 42, 51, 0x475569).setStrokeStyle(3, 0x1e293b));
+      prop.add(this.add.rectangle(0, -54, 48, 8, 0x1e293b));
+    }
+
+    prop.setData('propType', type);
+    this.sceneryProps.push(prop);
   }
 
   createPromoSystem() {
@@ -120,7 +179,7 @@ export class GameScene extends Phaser.Scene {
 
     const weighted = [];
     for (const campaign of eligible) {
-      const weight = Phaser.Math.Clamp(Number(campaign.weight) || 1, 1, 20);
+      const weight = Phaser.Math.Clamp(Number(campaign.weight) || 1, 1, 100);
       for (let i = 0; i < weight; i++) weighted.push(campaign);
     }
     return Phaser.Math.RND.pick(weighted);
@@ -423,6 +482,14 @@ export class GameScene extends Phaser.Scene {
     for (const mark of this.roadMarks) {
       mark.x -= this.speed * .72 * dt;
       if (mark.x < -60) mark.x += W + 210;
+    }
+
+    for (const prop of this.sceneryProps) {
+      prop.x -= this.speed * .42 * dt;
+      if (prop.x < -100) {
+        const furthest = Math.max(...this.sceneryProps.map(p => p.x));
+        prop.x = furthest + Phaser.Math.Between(340, 520);
+      }
     }
   }
 
