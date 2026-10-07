@@ -3,29 +3,93 @@ import Phaser from 'phaser';
 export class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
 
+  preload() {
+    this.load.image('orange-run', '/assets/characters/orange-run.webp');
+
+    // Optional campaign artwork. Missing promo files never block gameplay;
+    // campaigns.json decides which real assets are enabled.
+    this.load.json('promo-campaigns', '/assets/promo/campaigns.json');
+  }
+
   create() {
     const g = this.add.graphics();
 
-    this.makeRunner(g, 'runner-run-a', 0);
-    this.makeRunner(g, 'runner-run-b', 5);
-    this.makeRunner(g, 'runner-jump', -7);
-    this.makeDuckRunner(g, 'runner-duck');
+    // OG Potato is intentionally preserved as the fallback/secret character.
+    // Polished character assets can replace the active runner keys later without
+    // deleting the original prototype mascot.
+    this.makeRunner(g, 'og-potato-run-a', 0);
+    this.makeRunner(g, 'og-potato-run-b', 5);
+    this.makeRunner(g, 'og-potato-jump', -7);
+    this.makeDuckRunner(g, 'og-potato-duck');
 
-    g.fillStyle(0xff7a00).fillRoundedRect(8, 8, 34, 66, 9);
-    g.fillStyle(0xfacc15).fillRect(15, 1, 20, 12);
-    g.fillStyle(0xffffff).fillRoundedRect(13, 30, 24, 19, 6);
-    g.fillStyle(0x6d28d9).fillRect(17, 35, 16, 4);
-    g.generateTexture('bottle', 50, 82);
-    g.clear();
+    // Active character uses the original Orange artwork loaded above.
+    // OG Potato remains generated below as the permanent prototype fallback.
 
-    g.fillStyle(0xfbbf24).fillRoundedRect(0, 0, 80, 75, 8);
-    g.fillStyle(0x111827).fillTriangle(40, 12, 15, 58, 65, 58);
-    g.generateTexture('crate', 80, 75);
+    // Flavour-aware Zoom collectibles. These generated pouches are fallbacks;
+    // final product PNG/WebP art can later use the same texture keys.
+    const flavours = [
+      ['orange', 0xf97316, 0xffd166],
+      ['mango', 0xf59e0b, 0xa3e635],
+      ['apple', 0x22c55e, 0xd9f99d],
+      ['pineapple', 0xfacc15, 0xfef08a],
+      ['raspberry', 0xec4899, 0xf9a8d4],
+      ['blueberry', 0x2563eb, 0x93c5fd]
+    ];
+    for (const [name, colour, accent] of flavours) this.makeZoomPouch(g, 'zoom-' + name, colour, accent);
+
+    // Branded delivery carton / shop stock obstacle.
+    g.fillStyle(0x78350f).fillRoundedRect(2, 4, 78, 69, 5);
+    g.fillStyle(0xd97706).fillRoundedRect(5, 2, 72, 68, 4);
+    g.fillStyle(0xfbbf24).fillRect(8, 8, 66, 13);
+    g.fillStyle(0x6d28d9).fillRoundedRect(14, 28, 54, 27, 5);
+    g.fillStyle(0xffffff).fillRect(21, 35, 40, 7);
+    g.fillStyle(0xfacc15).fillRect(27, 46, 28, 4);
+    g.lineStyle(4, 0x92400e).strokeRect(5, 2, 72, 68);
+    g.generateTexture('crate', 82, 75);
     g.clear();
 
     g.fillStyle(0x60a5fa).fillEllipse(55, 25, 110, 50);
     g.fillStyle(0xffffff, .7).fillEllipse(42, 18, 45, 12);
     g.generateTexture('puddle', 110, 50);
+    g.clear();
+
+    // Wet-floor sign: tall yellow warning silhouette, clearly hazardous.
+    g.fillStyle(0xfacc15).fillRoundedRect(6, 3, 62, 88, 7);
+    g.fillStyle(0x111827).fillTriangle(37, 18, 17, 58, 57, 58);
+    g.fillStyle(0xfacc15).fillTriangle(37, 28, 27, 51, 47, 51);
+    g.fillStyle(0x111827).fillRect(34, 34, 6, 11);
+    g.fillCircle(37, 49, 3);
+    g.fillStyle(0x92400e).fillRect(13, 70, 48, 7);
+    g.generateTexture('wet-floor', 74, 94);
+    g.clear();
+
+    // Fallen stack of Zoom cartons.
+    g.fillStyle(0xd97706).fillRoundedRect(2, 31, 76, 48, 4);
+    g.fillStyle(0xfbbf24).fillRect(7, 37, 66, 10);
+    g.fillStyle(0x6d28d9).fillRoundedRect(13, 53, 54, 18, 4);
+    g.fillStyle(0xffffff).fillRect(20, 59, 40, 5);
+    g.fillStyle(0xf97316).fillRoundedRect(43, 3, 66, 46, 4);
+    g.fillStyle(0xfacc15).fillRect(48, 9, 56, 9);
+    g.fillStyle(0x6d28d9).fillRoundedRect(53, 24, 46, 17, 4);
+    g.fillStyle(0xffffff).fillRect(60, 30, 32, 5);
+    g.generateTexture('carton-stack', 114, 82);
+    g.clear();
+
+    // Freezer/ice spill hazard.
+    g.fillStyle(0x93c5fd, .95).fillEllipse(61, 62, 116, 34);
+    g.fillStyle(0xdbeafe, .9).fillEllipse(47, 56, 52, 13);
+    g.fillStyle(0x67e8f9).fillRoundedRect(22, 8, 55, 48, 8);
+    g.fillStyle(0xe0f2fe).fillRoundedRect(29, 14, 41, 34, 5);
+    g.lineStyle(4, 0xffffff, .8).lineBetween(36, 20, 61, 42);
+    g.lineBetween(61, 20, 39, 43);
+    g.generateTexture('ice-spill', 122, 80);
+    g.clear();
+
+    // Roadworks cone, deliberately high-contrast.
+    g.fillStyle(0xf97316).fillTriangle(40, 4, 14, 70, 66, 70);
+    g.fillStyle(0xffffff).fillRect(23, 42, 34, 10);
+    g.fillStyle(0x111827).fillRoundedRect(4, 67, 72, 13, 4);
+    g.generateTexture('cone', 80, 82);
     g.clear();
 
     g.fillStyle(0x22c55e).fillCircle(32, 32, 29);
@@ -56,12 +120,134 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('awning', 150, 42);
     g.clear();
 
-    g.fillStyle(0xef4444).fillRoundedRect(0, 0, 120, 36, 8);
-    g.fillStyle(0xffffff).fillRect(12, 12, 96, 8);
-    g.generateTexture('barrier', 120, 36);
+    // Pavement delivery trolley / low stock obstacle.
+    g.fillStyle(0x334155).fillRoundedRect(4, 12, 112, 27, 7);
+    g.fillStyle(0xfacc15).fillRect(12, 18, 96, 9);
+    g.fillStyle(0x6d28d9).fillRect(12, 28, 96, 7);
+    g.fillStyle(0x111827).fillCircle(25, 42, 9);
+    g.fillCircle(95, 42, 9);
+    g.fillStyle(0x94a3b8).fillCircle(25, 42, 4);
+    g.fillCircle(95, 42, 4);
+    g.generateTexture('barrier', 120, 52);
     g.destroy();
 
     this.scene.start('MenuScene');
+  }
+
+  makeZoomPouch(g, key, colour, accent) {
+    g.clear();
+
+    // Compact stand-up pouch silhouette inspired by the product family,
+    // deliberately generic until supplied product artwork is available.
+    g.fillStyle(0x111827, .22).fillRoundedRect(7, 7, 50, 76, 9);
+    g.fillStyle(colour).fillRoundedRect(4, 3, 50, 76, 9);
+    g.fillStyle(accent, .9).fillRoundedRect(8, 8, 42, 18, 5);
+    g.fillStyle(0xffffff, .88).fillEllipse(29, 47, 35, 31);
+    g.fillStyle(0xef4444).fillRoundedRect(10, 31, 38, 19, 7);
+    g.fillStyle(0xffffff).fillRect(15, 37, 28, 6);
+    g.fillStyle(0x6d28d9).fillRoundedRect(12, 57, 34, 12, 5);
+    g.fillStyle(0xffffff).fillRect(17, 61, 24, 4);
+    g.fillStyle(accent).fillTriangle(44, 8, 54, 17, 46, 26);
+    g.generateTexture(key, 62, 86);
+  }
+
+  makeZoomRunner(g, key, pose) {
+    g.clear();
+
+    const duck = pose === 'duck';
+    const jump = pose === 'jump';
+    const runB = pose === 'run-b';
+    const outline = 0x4a1f16;
+    const orange = 0xf47a20;
+    const red = 0xd9362b;
+    const face = 0xffc52f;
+    const blue = 0x36b9ee;
+
+    // Arms sit behind the fruit body. The pose changes, but the character
+    // keeps the same round silhouette as the original Zoom artwork.
+    g.lineStyle(8, orange);
+    if (duck) {
+      g.lineBetween(30, 62, 12, 75);
+      g.lineBetween(82, 61, 101, 70);
+    } else if (jump) {
+      g.lineBetween(31, 58, 12, 40);
+      g.lineBetween(82, 56, 102, 35);
+    } else {
+      g.lineBetween(31, 59, runB ? 13 : 18, runB ? 76 : 42);
+      g.lineBetween(82, 57, runB ? 100 : 96, runB ? 39 : 75);
+    }
+
+    // Blue cartoon gloves.
+    g.fillStyle(blue);
+    const hands = duck ? [[10, 76], [103, 70]] :
+      jump ? [[10, 39], [103, 34]] :
+      runB ? [[11, 78], [102, 38]] : [[16, 40], [98, 76]];
+    for (const [x, y] of hands) {
+      g.fillCircle(x, y, 8);
+      g.fillCircle(x - 6, y - 5, 4);
+      g.fillCircle(x, y - 8, 4);
+      g.fillCircle(x + 6, y - 5, 4);
+    }
+
+    // Round orange/red fruit body with warm face patch.
+    g.fillStyle(outline).fillEllipse(56, duck ? 60 : 54, duck ? 91 : 84, duck ? 59 : 82);
+    g.fillStyle(red).fillEllipse(54, duck ? 60 : 54, duck ? 86 : 79, duck ? 54 : 77);
+    g.fillStyle(orange).fillEllipse(60, duck ? 55 : 47, duck ? 72 : 67, duck ? 43 : 61);
+    g.fillStyle(face).fillEllipse(68, duck ? 58 : 51, duck ? 58 : 54, duck ? 38 : 48);
+
+    // Small tilted cap from the original character.
+    g.fillStyle(outline).fillEllipse(54, duck ? 34 : 20, 48, 13);
+    g.fillStyle(0xe5b52e).fillEllipse(54, duck ? 32 : 18, 44, 10);
+    g.fillStyle(0x8b5a2b).fillRect(35, duck ? 27 : 13, 39, 7);
+    g.fillStyle(0xe5b52e).fillEllipse(73, duck ? 30 : 16, 24, 7);
+
+    // Eyes, brows and oversized happy Zoom grin.
+    const eyeY = duck ? 49 : 40;
+    g.fillStyle(0xffffff).fillEllipse(60, eyeY, 15, 21);
+    g.fillEllipse(76, eyeY + 1, 15, 21);
+    g.fillStyle(0x2563a6).fillCircle(63, eyeY + 2, 5);
+    g.fillCircle(79, eyeY + 3, 5);
+    g.fillStyle(0x111827).fillCircle(64, eyeY + 2, 2);
+    g.fillCircle(80, eyeY + 3, 2);
+    g.lineStyle(3, outline).lineBetween(52, eyeY - 13, 64, eyeY - 16);
+    g.lineBetween(73, eyeY - 15, 84, eyeY - 11);
+    g.fillStyle(orange).fillEllipse(70, eyeY + 14, 11, 8);
+    g.fillStyle(outline).fillEllipse(72, eyeY + 25, 29, 19);
+    g.fillStyle(0xffffff).fillEllipse(72, eyeY + 20, 22, 8);
+    g.fillStyle(0xe9425c).fillEllipse(73, eyeY + 29, 14, 7);
+
+    // Legs and blue/white sneakers. Duck tucks both feet beneath the body.
+    g.lineStyle(7, orange);
+    if (duck) {
+      g.lineBetween(42, 81, 32, 91);
+      g.lineBetween(72, 82, 82, 91);
+      this.makeZoomShoe(g, 25, 88, false);
+      this.makeZoomShoe(g, 77, 88, true);
+    } else if (jump) {
+      g.lineBetween(42, 88, 27, 101);
+      g.lineBetween(70, 88, 86, 99);
+      this.makeZoomShoe(g, 16, 97, false);
+      this.makeZoomShoe(g, 81, 95, true);
+    } else if (runB) {
+      g.lineBetween(42, 88, 25, 102);
+      g.lineBetween(69, 88, 83, 99);
+      this.makeZoomShoe(g, 14, 98, false);
+      this.makeZoomShoe(g, 78, 95, true);
+    } else {
+      g.lineBetween(43, 88, 57, 101);
+      g.lineBetween(69, 88, 54, 102);
+      this.makeZoomShoe(g, 50, 98, true);
+      this.makeZoomShoe(g, 38, 99, false);
+    }
+
+    g.generateTexture(key, 116, 116);
+  }
+
+  makeZoomShoe(g, x, y, flip) {
+    g.fillStyle(0x163b73).fillRoundedRect(x, y, 25, 12, 6);
+    g.fillStyle(0xffffff).fillRoundedRect(x + (flip ? 1 : 5), y + 2, 17, 7, 4);
+    g.fillStyle(0x36b9ee).fillRect(x + (flip ? 14 : 3), y + 1, 8, 8);
+    g.fillStyle(0xfacc15).fillRect(x + 2, y + 9, 21, 3);
   }
 
   makeDuckRunner(g, key) {

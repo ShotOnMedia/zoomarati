@@ -1,0 +1,16 @@
+{
+  "campaigns": [
+    {
+      "id": "zoomarati-house",
+      "name": "Zoomarati House Promo",
+      "active": true,
+      "start": null,
+      "end": null,
+      "weight": 1,
+      "assets": {
+        "billboard": null,
+        "storefront": null
+      }
+    }
+  ]
+}

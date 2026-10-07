@@ -4,6 +4,7 @@ const W = 1280;
 const H = 720;
 const GROUND_Y = 610;
 const PLAYER_X = 180;
+const ZOOM_FLAVOURS = ['orange', 'mango', 'apple', 'pineapple', 'raspberry', 'blueberry'];
 
 export class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
@@ -29,6 +30,7 @@ export class GameScene extends Phaser.Scene {
 
     this.createWorld();
     this.createParallax();
+    this.createPromoSystem();
     this.createGround();
     this.createPlayer();
     this.createGroups();
@@ -44,56 +46,311 @@ export class GameScene extends Phaser.Scene {
       delay: 125, loop: true, callback: () => {
         if (!this.gameOver && !this.paused && !this.ducking && this.isGrounded()) {
           this.runFrame = 1 - this.runFrame;
-          this.player.setTexture(this.runFrame ? 'runner-run-b' : 'runner-run-a');
+          this.setOrangeVisual(this.runFrame ? 2 : -2);
         }
       }
     });
   }
 
   createWorld() {
+    // Base world: sky, distant haze, pavement and road. Decorative buildings
+    // now live in the parallax scenery layers rather than being fixed blocks.
     this.add.rectangle(W / 2, H / 2, W, H, 0x38bdf8).setDepth(-30);
-    this.add.circle(1040, 120, 75, 0xfef08a, .9).setDepth(-29);
-    for (let i = 0; i < 9; i++) {
-      const w = 150 + (i % 3) * 35;
-      const h = 180 + (i % 4) * 35;
-      const colors = [0xf97316, 0xec4899, 0x06b6d4, 0x22c55e, 0x8b5cf6];
-      this.add.rectangle(i * 165 + 70, GROUND_Y - h / 2, w, h, colors[i % colors.length]).setDepth(-12);
-      this.add.rectangle(i * 165 + 70, GROUND_Y - h + 42, w - 25, 32, 0xffffff, .18).setDepth(-11);
-    }
+    this.add.rectangle(W / 2, 425, W, 190, 0x7dd3fc, .35).setDepth(-29);
+    this.add.circle(1040, 120, 75, 0xfef08a, .9).setDepth(-28);
+
     this.add.rectangle(W / 2, GROUND_Y + 55, W, 110, 0x7c4a2d).setDepth(-4);
     this.add.rectangle(W / 2, GROUND_Y + 6, W, 16, 0xd1d5db).setDepth(-3);
+    this.add.rectangle(W / 2, GROUND_Y - 5, W, 5, 0xf8fafc, .9).setDepth(-3);
   }
 
   createParallax() {
     this.parallax = [];
 
-    const hills = this.add.graphics().setDepth(1);
-    hills.fillStyle(0x1d9a8a, .45);
-    for (let x = -80; x < W + 180; x += 220) hills.fillCircle(x, 470, 170);
-    hills.generateTexture('hills-layer', W + 300, 300);
-    hills.destroy();
-
-    const shops = this.add.graphics().setDepth(2);
-    const shopColors = [0xf97316, 0xec4899, 0x22c55e, 0x8b5cf6, 0x06b6d4];
-    for (let i = 0; i < 8; i++) {
-      const x = i * 190;
-      const h = 130 + (i % 3) * 35;
-      shops.fillStyle(shopColors[i % shopColors.length]).fillRect(x, 220 - h, 165, h);
-      shops.fillStyle(0xffffff, .25).fillRect(x + 18, 220 - h + 25, 55, 38);
-      shops.fillStyle(0xfacc15).fillRect(x + 18, 195, 128, 18);
+    const skyline = this.add.graphics();
+    skyline.fillStyle(0x0f766e, .30);
+    skyline.fillEllipse(190, 245, 430, 160);
+    skyline.fillEllipse(560, 250, 520, 145);
+    skyline.fillEllipse(1040, 240, 560, 170);
+    skyline.fillStyle(0x155e75, .28);
+    for (let x = 40; x < 1600; x += 95) {
+      const h = 38 + ((x / 95) % 4) * 14;
+      skyline.fillRect(x, 265 - h, 58, h);
     }
-    shops.generateTexture('shops-layer', 1520, 230);
-    shops.destroy();
+    skyline.generateTexture('skyline-layer', 1600, 300);
+    skyline.destroy();
 
-    this.hillsA = this.add.image(0, 455, 'hills-layer').setOrigin(0, .5).setDepth(-20);
-    this.hillsB = this.add.image(this.hillsA.displayWidth, 455, 'hills-layer').setOrigin(0, .5).setDepth(1);
-    this.shopsA = this.add.image(0, 505, 'shops-layer').setOrigin(0, 1).setDepth(-8);
-    this.shopsB = this.add.image(this.shopsA.displayWidth, 505, 'shops-layer').setOrigin(0, 1).setDepth(-8);
-    this.parallax.push([this.hillsA, this.hillsB, .08], [this.shopsA, this.shopsB, .28]);
+    this.makeStreetSection('street-general', ['general', 'takeaway', 'market', 'pharmacy']);
+    this.makeStreetSection('street-retail', ['supermarket', 'cafe', 'general', 'market']);
+    this.makeStreetSection('street-local', ['market', 'general', 'takeaway', 'cafe']);
+
+    this.skylineA = this.add.image(0, 390, 'skyline-layer').setOrigin(0, 1).setDepth(-20);
+    this.skylineB = this.add.image(this.skylineA.displayWidth, 390, 'skyline-layer').setOrigin(0, 1).setDepth(-20);
+
+    this.streetSectionKeys = ['street-general', 'street-retail', 'street-local'];
+    this.streetSectionCursor = 2;
+    this.shopsA = this.add.image(0, 600, 'street-general').setOrigin(0, 1).setDepth(-8);
+    this.shopsB = this.add.image(this.shopsA.displayWidth, 600, 'street-retail').setOrigin(0, 1).setDepth(-8);
+    this.parallax.push([this.skylineA, this.skylineB, .07]);
 
     this.roadMarks = [];
     for (let x = 40; x < W + 180; x += 150) {
       this.roadMarks.push(this.add.rectangle(x, 652, 82, 8, 0xfef3c7, .8).setDepth(-2));
+    }
+
+    this.sceneryProps = [];
+    for (let x = 520; x < W + 800; x += 430) this.spawnSceneryProp(x);
+  }
+
+  makeStreetSection(key, types) {
+    const g = this.add.graphics();
+    const sectionWidth = 1120;
+    const shopWidth = 260;
+    const gap = 18;
+
+    types.forEach((type, i) => {
+      const x = i * (shopWidth + gap);
+      this.drawShop(g, x, shopWidth, type, i);
+    });
+
+    g.generateTexture(key, sectionWidth, 300);
+    g.destroy();
+  }
+
+  drawShop(g, x, w, type, variant) {
+    const palette = {
+      general: [0x22c55e, 0xfacc15],
+      takeaway: [0xf97316, 0xfef3c7],
+      supermarket: [0x2563eb, 0xffffff],
+      pharmacy: [0x0d9488, 0xffffff],
+      market: [0xec4899, 0xfef08a],
+      cafe: [0x92400e, 0xfde68a]
+    }[type];
+
+    const h = 205 + (variant % 2) * 22;
+    const top = 300 - h;
+    g.fillStyle(0x111827, .14).fillRect(x + 7, top + 7, w, h);
+    g.fillStyle(palette[0]).fillRect(x, top, w, h);
+    g.fillStyle(palette[1]).fillRect(x, top, w, 11);
+
+    // Upper façade details vary by shop type.
+    if (type === 'supermarket') {
+      g.fillStyle(0xe0f2fe).fillRect(x + 18, top + 24, w - 36, 48);
+      for (let j = 0; j < 4; j++) g.fillStyle(0x93c5fd).fillRect(x + 27 + j * 52, top + 31, 38, 34);
+    } else if (type === 'market') {
+      g.fillStyle(0xfef3c7).fillRect(x + 20, top + 27, 62, 44);
+      g.fillStyle(0xfef3c7).fillRect(x + 96, top + 27, 62, 44);
+      g.fillStyle(0xfef3c7).fillRect(x + 172, top + 27, 62, 44);
+    } else {
+      g.fillStyle(0xbff3ff, .78).fillRect(x + 20, top + 25, 72, 49);
+      g.fillStyle(0xffffff, .32).fillRect(x + 28, top + 32, 20, 35);
+      g.lineStyle(3, 0xffffff, .55).strokeRect(x + 20, top + 25, 72, 49);
+      if (type === 'pharmacy') {
+        g.fillStyle(0xffffff).fillRect(x + 172, top + 27, 16, 50);
+        g.fillRect(x + 155, top + 44, 50, 16);
+      }
+    }
+
+    // Subdued shop identity panels so gameplay objects remain dominant.
+    g.fillStyle(0x1f2937, .88).fillRoundedRect(x + 17, top + 88, w - 34, 34, 5);
+    const signAccent = type === 'pharmacy' ? 0x22c55e : palette[1];
+    g.fillStyle(signAccent).fillRect(x + 30, top + 100, w - 60, 9);
+
+    // Ground floor / entrance.
+    g.fillStyle(0x164e63, .80).fillRect(x + 18, top + 139, w - 83, h - 139);
+    g.fillStyle(0x67e8f9, .28).fillRect(x + 27, top + 147, w - 101, Math.max(25, h - 158));
+    g.fillStyle(0x3f3f46).fillRect(x + w - 53, top + 139, 36, h - 139);
+    g.fillStyle(0xfacc15).fillCircle(x + w - 27, top + h - 27, 3);
+
+    // Individual street personality.
+    if (type === 'takeaway' || type === 'cafe') {
+      for (let a = 0; a < 6; a++) {
+        g.fillStyle(a % 2 ? 0xffffff : palette[1]).fillRect(x + 18 + a * 36, top + 123, 36, 15);
+      }
+      g.fillStyle(0x475569).fillRect(x + 195, top - 20, 34, 20);
+      g.fillStyle(0x94a3b8).fillRect(x + 201, top - 32, 22, 12);
+    } else if (type === 'market') {
+      for (let a = 0; a < 6; a++) {
+        g.fillStyle(a % 2 ? 0x22c55e : 0xfacc15).fillTriangle(
+          x + 18 + a * 36, top + 123,
+          x + 36 + a * 36, top + 143,
+          x + 54 + a * 36, top + 123
+        );
+      }
+      g.fillStyle(0x92400e).fillRect(x + 28, top + h - 30, 105, 22);
+      for (let p = 0; p < 5; p++) {
+        g.fillStyle([0xf97316, 0xef4444, 0x84cc16][p % 3]).fillCircle(x + 39 + p * 20, top + h - 33, 9);
+      }
+    } else {
+      for (let a = 0; a < 6; a++) {
+        g.fillStyle(a % 2 ? 0xffffff : palette[1]).fillRect(x + 18 + a * 36, top + 123, 36, 15);
+      }
+    }
+
+    if (type === 'general' || type === 'supermarket') {
+      g.fillStyle(0x64748b).fillRect(x + 106, top + 151, 55, 12);
+      g.fillStyle(0xf97316).fillRoundedRect(x + 112, top + 167, 17, 28, 4);
+      g.fillStyle(0x22c55e).fillRoundedRect(x + 136, top + 167, 17, 28, 4);
+    }
+  }
+
+  updateStreetSections(dt) {
+    const move = this.speed * .28 * dt;
+    this.shopsA.x -= move;
+    this.shopsB.x -= move;
+
+    if (this.shopsA.x + this.shopsA.displayWidth <= 0) {
+      this.recycleStreetSection(this.shopsA, this.shopsB);
+    }
+    if (this.shopsB.x + this.shopsB.displayWidth <= 0) {
+      this.recycleStreetSection(this.shopsB, this.shopsA);
+    }
+  }
+
+  recycleStreetSection(section, other) {
+    section.x = other.x + other.displayWidth;
+    const currentKey = section.texture.key;
+    let nextKey = Phaser.Math.RND.pick(this.streetSectionKeys);
+    if (nextKey === currentKey) {
+      const index = (this.streetSectionKeys.indexOf(nextKey) + 1) % this.streetSectionKeys.length;
+      nextKey = this.streetSectionKeys[index];
+    }
+    section.setTexture(nextKey);
+  }
+
+  spawnSceneryProp(x) {
+    const type = Phaser.Math.RND.pick(['lamp', 'planter', 'bin', 'bench', 'poster', 'aircon', 'newspaper']);
+    const prop = this.add.container(x, GROUND_Y - 7).setDepth(-5);
+
+    if (type === 'lamp') {
+      prop.add(this.add.rectangle(0, -62, 7, 112, 0x334155));
+      prop.add(this.add.circle(0, -122, 15, 0xfef08a).setStrokeStyle(5, 0x334155));
+    } else if (type === 'planter') {
+      prop.add(this.add.rectangle(0, -18, 58, 31, 0x92400e));
+      prop.add(this.add.circle(-14, -43, 21, 0x16a34a));
+      prop.add(this.add.circle(10, -49, 25, 0x22c55e));
+      prop.add(this.add.circle(27, -39, 17, 0x15803d));
+    } else if (type === 'bin') {
+      prop.add(this.add.rectangle(0, -27, 42, 51, 0x475569).setStrokeStyle(3, 0x1e293b));
+      prop.add(this.add.rectangle(0, -54, 48, 8, 0x1e293b));
+    } else if (type === 'bench') {
+      prop.add(this.add.rectangle(0, -28, 92, 12, 0x92400e));
+      prop.add(this.add.rectangle(0, -49, 92, 10, 0xb45309));
+      prop.add(this.add.rectangle(-34, -13, 7, 31, 0x334155));
+      prop.add(this.add.rectangle(34, -13, 7, 31, 0x334155));
+    } else if (type === 'aircon') {
+      prop.y -= 150;
+      prop.add(this.add.rectangle(0, -24, 58, 42, 0xe2e8f0).setStrokeStyle(3, 0x64748b));
+      prop.add(this.add.circle(0, -24, 14, 0x94a3b8).setStrokeStyle(3, 0x475569));
+      prop.add(this.add.circle(0, -24, 5, 0x64748b));
+    } else if (type === 'newspaper') {
+      prop.add(this.add.rectangle(0, -18, 52, 32, 0xe5e7eb).setAngle(-8));
+      prop.add(this.add.rectangle(0, -22, 35, 5, 0x64748b).setAngle(-8));
+    } else {
+      prop.add(this.add.rectangle(0, -54, 7, 102, 0x475569));
+      prop.add(this.add.rectangle(0, -106, 64, 58, 0x475569).setStrokeStyle(3, 0xcbd5e1));
+      prop.add(this.add.text(0, -106, 'LOCAL', {
+        fontSize: '13px', fontStyle: 'bold', color: '#ffffff'
+      }).setOrigin(.5));
+    }
+
+    prop.setData('propType', type);
+    this.sceneryProps.push(prop);
+  }
+
+  createPromoSystem() {
+    const raw = this.cache.json.get('promo-campaigns');
+    const now = new Date();
+    this.promoCampaigns = (raw?.campaigns || []).filter(campaign => {
+      if (!campaign.active) return false;
+      if (campaign.start && now < new Date(campaign.start + 'T00:00:00')) return false;
+      if (campaign.end && now > new Date(campaign.end + 'T23:59:59')) return false;
+      return true;
+    });
+
+    this.promoSlots = [];
+    this.nextPromoX = W + 420;
+    this.spawnPromoSlot('billboard', this.nextPromoX);
+    this.spawnPromoSlot('storefront', this.nextPromoX + 720);
+  }
+
+  pickPromoCampaign(type) {
+    const eligible = this.promoCampaigns.filter(c => c.assets?.[type]);
+    if (!eligible.length) return null;
+
+    const weighted = [];
+    for (const campaign of eligible) {
+      const weight = Phaser.Math.Clamp(Number(campaign.weight) || 1, 1, 100);
+      for (let i = 0; i < weight; i++) weighted.push(campaign);
+    }
+    return Phaser.Math.RND.pick(weighted);
+  }
+
+  spawnPromoSlot(type, x) {
+    const campaign = this.pickPromoCampaign(type);
+    const y = type === 'billboard' ? 330 : 455;
+    const width = type === 'billboard' ? 250 : 185;
+    const height = type === 'billboard' ? 125 : 145;
+
+    const container = this.add.container(x, y).setDepth(-6);
+    const frame = this.add.rectangle(0, 0, width + 14, height + 14, 0x4c1d95)
+      .setStrokeStyle(4, 0xfacc15);
+    const panel = this.add.rectangle(0, 0, width, height, 0xffffff);
+    container.add([frame, panel]);
+
+    if (campaign?.assets?.[type]) {
+      const key = 'promo-' + campaign.id + '-' + type;
+      const url = '/assets/promo/' + campaign.assets[type];
+
+      if (this.textures.exists(key)) {
+        const image = this.add.image(0, 0, key).setDisplaySize(width, height);
+        container.add(image);
+      } else {
+        const label = this.makeHousePromo(type, width, height, campaign.name);
+        container.add(label);
+        this.load.image(key, url);
+        this.load.once('filecomplete-image-' + key, () => {
+          if (!container.active) return;
+          label.destroy();
+          container.add(this.add.image(0, 0, key).setDisplaySize(width, height));
+        });
+        this.load.start();
+      }
+      container.setData('campaignId', campaign.id);
+    } else {
+      container.add(this.makeHousePromo(type, width, height));
+      container.setData('campaignId', 'zoomarati-house');
+    }
+
+    container.setData('promoType', type);
+    this.promoSlots.push(container);
+  }
+
+  makeHousePromo(type, width, height, sponsorName = '') {
+    const container = this.add.container(0, 0);
+    container.add(this.add.rectangle(0, 0, width, height, type === 'billboard' ? 0xec4899 : 0x06b6d4));
+    container.add(this.add.text(0, -16, 'ZOOM!', {
+      fontSize: type === 'billboard' ? '34px' : '28px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#6d28d9',
+      strokeThickness: 6
+    }).setOrigin(.5));
+    container.add(this.add.text(0, 25, sponsorName || 'IT\'S WHAT\'S INSIDE\nTHAT COUNTS!', {
+      fontSize: type === 'billboard' ? '14px' : '12px',
+      align: 'center',
+      color: '#fef08a'
+    }).setOrigin(.5));
+    return container;
+  }
+
+  updatePromoSlots(dt) {
+    for (const slot of this.promoSlots) {
+      slot.x -= this.speed * .28 * dt;
+      if (slot.x < -320) {
+        const furthest = Math.max(...this.promoSlots.map(s => s.x));
+        slot.x = furthest + Phaser.Math.Between(620, 880);
+      }
     }
   }
 
@@ -103,12 +360,41 @@ export class GameScene extends Phaser.Scene {
   }
 
   createPlayer() {
-    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y - 54, 'runner-run-a').setDepth(20);
-    this.standingPlayerY = GROUND_Y - 54;
-    this.duckPlayerY = GROUND_Y - 50;
+    this.player = this.physics.add.sprite(PLAYER_X, GROUND_Y, 'orange-run').setDepth(20);
     this.player.setCollideWorldBounds(true);
+    this.setOrangeVisual();
     this.setStandingBody();
     this.physics.add.collider(this.player, this.ground);
+  }
+
+  setOrangeVisual(angle = 0) {
+    if (!this.player) return;
+
+    this.player.setTexture('orange-run');
+
+    // Never deform Orange to match the physics body. Scale the source artwork
+    // uniformly, using its visible central area as the sizing reference.
+    const frame = this.player.frame;
+    const sourceWidth = frame.realWidth || frame.width;
+    const sourceHeight = frame.realHeight || frame.height;
+    const visibleHeightRatio = 0.78;
+    const targetVisibleHeight = 178;
+    const scale = targetVisibleHeight / (sourceHeight * visibleHeightRatio);
+
+    this.player.setScale(scale);
+    this.player.setAngle(angle);
+
+    // Anchor the sprite to the character's feet instead of the centre of the
+    // source artboard. This makes GROUND_Y mean "feet on pavement".
+    this.player.setOrigin(0.5, 0.88);
+
+    // Crop only transparent/artboard padding. The crop is deliberately
+    // conservative so gloves, shoes and the cap are never clipped.
+    const cropX = Math.round(sourceWidth * 0.08);
+    const cropY = Math.round(sourceHeight * 0.04);
+    const cropW = Math.round(sourceWidth * 0.84);
+    const cropH = Math.round(sourceHeight * 0.90);
+    this.player.setCrop(cropX, cropY, cropW, cropH);
   }
 
   createGroups() {
@@ -251,6 +537,7 @@ export class GameScene extends Phaser.Scene {
     const dt = Math.min(delta, 50) / 1000;
     this.speed = Math.min(760, this.speed + dt * 5);
     this.updateParallax(dt);
+    this.updatePromoSlots(dt);
     this.distance += this.speed * dt / 90;
     this.score += dt * 22;
     if (this.combo && this.time.now > this.comboExpiresAt) {
@@ -293,9 +580,19 @@ export class GameScene extends Phaser.Scene {
       if (a.x + a.displayWidth <= 0) a.x = b.x + b.displayWidth;
       if (b.x + b.displayWidth <= 0) b.x = a.x + a.displayWidth;
     }
+    this.updateStreetSections(dt);
+
     for (const mark of this.roadMarks) {
       mark.x -= this.speed * .72 * dt;
       if (mark.x < -60) mark.x += W + 210;
+    }
+
+    for (const prop of this.sceneryProps) {
+      prop.x -= this.speed * .42 * dt;
+      if (prop.x < -100) {
+        const furthest = Math.max(...this.sceneryProps.map(p => p.x));
+        prop.x = furthest + Phaser.Math.Between(340, 520);
+      }
     }
   }
 
@@ -306,25 +603,31 @@ export class GameScene extends Phaser.Scene {
   jump() {
     if (!this.isGrounded() || this.ducking) return;
     this.player.setVelocityY(-780);
-    this.player.setTexture('runner-jump');
-    this.tweens.add({ targets: this.player, angle: -8, duration: 100, yoyo: true });
+    this.setOrangeVisual();
+    this.tweens.add({ targets: this.player, angle: -10, duration: 100, yoyo: true });
   }
 
   setStandingBody() {
     if (!this.player?.body) return;
-    this.player.setTexture('runner-run-a');
-    this.player.setScale(1);
-    if (this.isGrounded()) this.player.y = this.standingPlayerY;
-    this.player.body.setSize(60, 92, false);
-    this.player.body.setOffset(15, 10);
+    this.setOrangeVisual();
+    if (this.isGrounded()) this.player.y = GROUND_Y - 2;
+
+    // Physics stays compact and forgiving; it is intentionally independent
+    // of the full artwork bounds.
+    const frame = this.player.frame;
+    this.player.body.setSize(frame.realWidth * 0.42, frame.realHeight * 0.62, false);
+    this.player.body.setOffset(frame.realWidth * 0.29, frame.realHeight * 0.22);
   }
 
   setDuckBody() {
-    this.player.setTexture('runner-duck');
-    this.player.setScale(1);
-    this.player.y = this.duckPlayerY;
-    this.player.body.setSize(68, 52, false);
-    this.player.body.setOffset(16, 45);
+    this.setOrangeVisual(7);
+    this.player.y = GROUND_Y - 2;
+
+    // Duck keeps the same foot anchor and shrinks only the hitbox.
+    // No X/Y stretching: Orange keeps his original proportions.
+    const frame = this.player.frame;
+    this.player.body.setSize(frame.realWidth * 0.48, frame.realHeight * 0.34, false);
+    this.player.body.setOffset(frame.realWidth * 0.26, frame.realHeight * 0.50);
   }
 
   spawnCollectible() {
@@ -337,8 +640,10 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < count; i++) {
       let y = baseY;
       if (pattern === 'arc') y -= Math.sin((i / (count - 1)) * Math.PI) * 95;
-      const bottle = this.collectibles.create(baseX + i * 72, y, 'bottle').setScale(.78).setDepth(15);
-      bottle.body.setSize(38, 68);
+      const flavour = Phaser.Math.RND.pick(ZOOM_FLAVOURS);
+      const bottle = this.collectibles.create(baseX + i * 72, y, 'zoom-' + flavour).setScale(.82).setDepth(15);
+      bottle.setData('flavour', flavour);
+      bottle.body.setSize(42, 64);
     }
   }
 
@@ -415,16 +720,24 @@ export class GameScene extends Phaser.Scene {
 
   spawnObstacle() {
     if (this.gameOver || this.paused) return;
-    const type = Phaser.Math.RND.pick(['crate', 'puddle', 'barrier', 'awning']);
-    let y = GROUND_Y - 35;
-    if (type === 'puddle') y = GROUND_Y - 10;
-    if (type === 'barrier') y = GROUND_Y - 18;
-    if (type === 'awning') y = GROUND_Y - 92;
-    const obstacle = this.obstacles.create(W + 100, y, type).setDepth(18);
-    if (type === 'puddle') obstacle.body.setSize(95, 28);
-    if (type === 'crate') obstacle.body.setSize(62, 64);
-    if (type === 'barrier') obstacle.body.setSize(105, 30);
-    if (type === 'awning') obstacle.body.setSize(135, 30);
+    const type = Phaser.Math.RND.pick([
+      'crate', 'puddle', 'barrier', 'awning',
+      'wet-floor', 'carton-stack', 'ice-spill', 'cone'
+    ]);
+    const config = {
+      crate: { y: GROUND_Y - 35, w: 62, h: 64 },
+      puddle: { y: GROUND_Y - 10, w: 95, h: 28 },
+      barrier: { y: GROUND_Y - 18, w: 105, h: 30 },
+      awning: { y: GROUND_Y - 92, w: 135, h: 30 },
+      'wet-floor': { y: GROUND_Y - 43, w: 52, h: 78 },
+      'carton-stack': { y: GROUND_Y - 38, w: 100, h: 68 },
+      'ice-spill': { y: GROUND_Y - 25, w: 105, h: 48 },
+      cone: { y: GROUND_Y - 38, w: 58, h: 70 }
+    }[type];
+
+    const obstacle = this.obstacles.create(W + 100, config.y, type).setDepth(18);
+    obstacle.body.setSize(config.w, config.h);
+    obstacle.setData('hazardType', type);
 
     const nextDelay = Phaser.Math.Clamp(1800 - (this.speed - 410) * 1.7, 900, 1800);
     this.obstacleTimer.delay = Phaser.Math.Between(Math.floor(nextDelay * .82), Math.floor(nextDelay * 1.18));
@@ -440,9 +753,9 @@ export class GameScene extends Phaser.Scene {
     if (this.time.now < this.doubleUntil) powers.push('2× ZOOM ' + Math.ceil((this.doubleUntil - this.time.now) / 1000) + 's');
     this.powerText.setText(powers.join('   •   '));
     if (this.ducking) {
-      if (this.player.texture.key !== 'runner-duck') this.player.setTexture('runner-duck');
-    } else if (this.isGrounded() && this.player.texture.key === 'runner-jump') {
-      this.player.setTexture('runner-run-a');
+      if (this.player.angle !== 7) this.setOrangeVisual(7);
+    } else if (this.isGrounded() && Math.abs(this.player.angle) > 3) {
+      this.setOrangeVisual();
     }
   }
 
